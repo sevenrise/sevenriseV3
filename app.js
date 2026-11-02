@@ -120,6 +120,8 @@ async function logout() {
     stopMiningTimer();
 
     currentUser = null;
+    miningEndsAt = null;
+
     dashboardSection.hidden = true;
     authSection.hidden = false;
 
@@ -144,9 +146,13 @@ async function loadApplication() {
 
     if (!session) {
         currentUser = null;
+
         dashboardSection.hidden = true;
         authSection.hidden = false;
+
+        miningEndsAt = null;
         stopMiningTimer();
+
         return;
     }
 
@@ -174,13 +180,17 @@ async function loadDashboard() {
 
         if (error) throw error;
 
-        if (!data) throw new Error("Dashboard tidak mengembalikan data.");
+        if (!data) {
+            throw new Error("Dashboard tidak mengembalikan data.");
+        }
 
         const dashboard = Array.isArray(data) ? data[0] : data;
 
+        // BALANCE
         document.getElementById("balance").textContent =
             Number(dashboard.balance || 0).toLocaleString("en-US");
 
+        // REFERRAL
         document.getElementById("referral-code").textContent =
             dashboard.referral_code || "Unavailable";
 
@@ -190,31 +200,28 @@ async function loadDashboard() {
         document.getElementById("referral-earnings").textContent =
             Number(dashboard.referral_earnings || 0).toLocaleString("en-US");
 
-        const miningStart =
-            dashboard.mining_started_at ||
-            dashboard.started_at;
-
-        const miningEnd =
-            dashboard.mining_ends_at ||
-            dashboard.ends_at;
-
-        const miningClaimed =
-            dashboard.mining_claimed_at ||
-            dashboard.claimed_at;
+        // MINING OBJECT FROM DATABASE
+        const mining = dashboard.mining;
 
         const startButton = document.getElementById("start-mining-btn");
         const claimButton = document.getElementById("claim-mining-btn");
 
-        if (miningEnd && !miningClaimed) {
-            miningEndsAt = new Date(miningEnd);
+        if (mining && mining.ends_at && !mining.claimed) {
+
+            miningEndsAt = new Date(mining.ends_at);
+
+            if (isNaN(miningEndsAt.getTime())) {
+                throw new Error("Waktu mining tidak valid.");
+            }
 
             startButton.disabled = true;
-            claimButton.disabled = false;
 
             updateMiningTimer();
 
         } else {
+
             miningEndsAt = null;
+
             stopMiningTimer();
 
             document.getElementById("mining-timer").textContent =
@@ -242,6 +249,7 @@ async function startMining() {
     const button = document.getElementById("start-mining-btn");
 
     button.disabled = true;
+
     showMessage(miningMessage, "Memulai mining...");
 
     try {
@@ -271,6 +279,8 @@ function updateMiningTimer() {
 
     if (!miningEndsAt) return;
 
+    const claimButton = document.getElementById("claim-mining-btn");
+
     function tick() {
         const remaining = Math.max(
             0,
@@ -287,20 +297,28 @@ function updateMiningTimer() {
                 .join(":");
 
         if (remaining <= 0) {
+
             document.getElementById("mining-status").textContent =
                 "Mining completed. You can claim your reward.";
 
-            document.getElementById("claim-mining-btn").disabled = false;
+            claimButton.disabled = false;
 
             stopMiningTimer();
+
         } else {
+
             document.getElementById("mining-status").textContent =
                 "Mining in progress...";
+
+            claimButton.disabled = true;
         }
     }
 
     tick();
-    miningInterval = setInterval(tick, 1000);
+
+    if (miningEndsAt.getTime() > Date.now()) {
+        miningInterval = setInterval(tick, 1000);
+    }
 }
 
 
@@ -320,6 +338,7 @@ async function claimMining() {
     const button = document.getElementById("claim-mining-btn");
 
     button.disabled = true;
+
     showMessage(miningMessage, "Memproses reward...");
 
     try {
@@ -332,6 +351,7 @@ async function claimMining() {
         showMessage(miningMessage, "Reward berhasil diklaim!");
 
         miningEndsAt = null;
+
         stopMiningTimer();
 
         await loadDashboard();
@@ -359,6 +379,7 @@ async function applyReferral() {
     const button = document.getElementById("apply-referral-btn");
 
     button.disabled = true;
+
     showMessage(referralMessage, "Memproses referral...");
 
     try {
@@ -398,9 +419,17 @@ async function copyReferral() {
 
     try {
         await navigator.clipboard.writeText(code);
-        showMessage(referralMessage, "Referral code berhasil disalin!");
+
+        showMessage(
+            referralMessage,
+            "Referral code berhasil disalin!"
+        );
+
     } catch (error) {
-        showMessage(referralMessage, "Gagal menyalin kode.");
+        showMessage(
+            referralMessage,
+            "Gagal menyalin kode."
+        );
     }
 }
 
@@ -434,7 +463,12 @@ document.getElementById("copy-referral-btn")
 
 supabaseClient.auth.onAuthStateChange((event, session) => {
     if (event === "SIGNED_OUT") {
-        loadApplication();
+        currentUser = null;
+
+        stopMiningTimer();
+
+        dashboardSection.hidden = true;
+        authSection.hidden = false;
     }
 });
 
