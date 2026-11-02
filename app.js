@@ -6,7 +6,6 @@ let currentUser = null;
 let miningInterval = null;
 let miningEndsAt = null;
 
-// ELEMENTS
 const authSection = document.getElementById("auth-section");
 const dashboardSection = document.getElementById("dashboard-section");
 
@@ -66,7 +65,7 @@ async function register() {
         } else {
             showMessage(
                 authMessage,
-                "Registrasi berhasil. Periksa email untuk konfirmasi akun."
+                "Registrasi berhasil. Periksa email untuk konfirmasi."
             );
         }
 
@@ -117,10 +116,10 @@ async function logout() {
         return;
     }
 
-    stopMiningTimer();
-
     currentUser = null;
     miningEndsAt = null;
+
+    stopMiningTimer();
 
     dashboardSection.hidden = true;
     authSection.hidden = false;
@@ -134,37 +133,39 @@ async function logout() {
 // ==========================================
 
 async function loadApplication() {
-    const {
-        data: { session },
-        error
-    } = await supabaseClient.auth.getSession();
+    try {
+        const {
+            data: { session },
+            error
+        } = await supabaseClient.auth.getSession();
 
-    if (error) {
+        if (error) throw error;
+
+        if (!session) {
+            currentUser = null;
+            miningEndsAt = null;
+
+            stopMiningTimer();
+
+            dashboardSection.hidden = true;
+            authSection.hidden = false;
+
+            return;
+        }
+
+        currentUser = session.user;
+
+        authSection.hidden = true;
+        dashboardSection.hidden = false;
+
+        document.getElementById("user-email").textContent =
+            currentUser.email || "SevenRise Member";
+
+        await loadDashboard();
+
+    } catch (error) {
         showMessage(authMessage, error.message);
-        return;
     }
-
-    if (!session) {
-        currentUser = null;
-
-        dashboardSection.hidden = true;
-        authSection.hidden = false;
-
-        miningEndsAt = null;
-        stopMiningTimer();
-
-        return;
-    }
-
-    currentUser = session.user;
-
-    authSection.hidden = true;
-    dashboardSection.hidden = false;
-
-    document.getElementById("user-email").textContent =
-        currentUser.email || "SevenRise Member";
-
-    await loadDashboard();
 }
 
 
@@ -200,14 +201,20 @@ async function loadDashboard() {
         document.getElementById("referral-earnings").textContent =
             Number(dashboard.referral_earnings || 0).toLocaleString("en-US");
 
-        // MINING OBJECT FROM DATABASE
+        // MINING DATA
         const mining = dashboard.mining;
 
-        const startButton = document.getElementById("start-mining-btn");
-        const claimButton = document.getElementById("claim-mining-btn");
+        const startButton =
+            document.getElementById("start-mining-btn");
 
-        if (mining && mining.ends_at && !mining.claimed) {
+        const claimButton =
+            document.getElementById("claim-mining-btn");
 
+        if (
+            mining &&
+            mining.ends_at &&
+            mining.claimed !== true
+        ) {
             miningEndsAt = new Date(mining.ends_at);
 
             if (isNaN(miningEndsAt.getTime())) {
@@ -219,7 +226,6 @@ async function loadDashboard() {
             updateMiningTimer();
 
         } else {
-
             miningEndsAt = null;
 
             stopMiningTimer();
@@ -246,14 +252,15 @@ async function loadDashboard() {
 // ==========================================
 
 async function startMining() {
-    const button = document.getElementById("start-mining-btn");
+    const button =
+        document.getElementById("start-mining-btn");
 
     button.disabled = true;
 
     showMessage(miningMessage, "Memulai mining...");
 
     try {
-        const { data, error } = await supabaseClient.rpc(
+        const { error } = await supabaseClient.rpc(
             "svr_start_mining"
         );
 
@@ -279,26 +286,40 @@ function updateMiningTimer() {
 
     if (!miningEndsAt) return;
 
-    const claimButton = document.getElementById("claim-mining-btn");
+    const timerElement =
+        document.getElementById("mining-timer");
+
+    const statusElement =
+        document.getElementById("mining-status");
+
+    const claimButton =
+        document.getElementById("claim-mining-btn");
 
     function tick() {
+        const now = Date.now();
+
         const remaining = Math.max(
             0,
-            Math.floor((miningEndsAt.getTime() - Date.now()) / 1000)
+            Math.floor(
+                (miningEndsAt.getTime() - now) / 1000
+            )
         );
 
         const hours = Math.floor(remaining / 3600);
-        const minutes = Math.floor((remaining % 3600) / 60);
+
+        const minutes = Math.floor(
+            (remaining % 3600) / 60
+        );
+
         const seconds = remaining % 60;
 
-        document.getElementById("mining-timer").textContent =
+        timerElement.textContent =
             [hours, minutes, seconds]
                 .map(value => String(value).padStart(2, "0"))
                 .join(":");
 
         if (remaining <= 0) {
-
-            document.getElementById("mining-status").textContent =
+            statusElement.textContent =
                 "Mining completed. You can claim your reward.";
 
             claimButton.disabled = false;
@@ -306,8 +327,7 @@ function updateMiningTimer() {
             stopMiningTimer();
 
         } else {
-
-            document.getElementById("mining-status").textContent =
+            statusElement.textContent =
                 "Mining in progress...";
 
             claimButton.disabled = true;
@@ -323,7 +343,7 @@ function updateMiningTimer() {
 
 
 function stopMiningTimer() {
-    if (miningInterval) {
+    if (miningInterval !== null) {
         clearInterval(miningInterval);
         miningInterval = null;
     }
@@ -331,28 +351,32 @@ function stopMiningTimer() {
 
 
 // ==========================================
-// CLAIM MINING REWARD
+// CLAIM MINING
 // ==========================================
 
 async function claimMining() {
-    const button = document.getElementById("claim-mining-btn");
+    const button =
+        document.getElementById("claim-mining-btn");
 
     button.disabled = true;
 
     showMessage(miningMessage, "Memproses reward...");
 
     try {
-        const { data, error } = await supabaseClient.rpc(
+        const { error } = await supabaseClient.rpc(
             "svr_claim_mining"
         );
 
         if (error) throw error;
 
-        showMessage(miningMessage, "Reward berhasil diklaim!");
-
         miningEndsAt = null;
 
         stopMiningTimer();
+
+        showMessage(
+            miningMessage,
+            "Reward berhasil diklaim!"
+        );
 
         await loadDashboard();
 
@@ -368,22 +392,31 @@ async function claimMining() {
 // ==========================================
 
 async function applyReferral() {
-    const input = document.getElementById("input-referral-code");
+    const input =
+        document.getElementById("input-referral-code");
+
     const code = input.value.trim();
 
     if (!code) {
-        showMessage(referralMessage, "Masukkan referral code.");
+        showMessage(
+            referralMessage,
+            "Masukkan referral code."
+        );
         return;
     }
 
-    const button = document.getElementById("apply-referral-btn");
+    const button =
+        document.getElementById("apply-referral-btn");
 
     button.disabled = true;
 
-    showMessage(referralMessage, "Memproses referral...");
+    showMessage(
+        referralMessage,
+        "Memproses referral..."
+    );
 
     try {
-        const { data, error } = await supabaseClient.rpc(
+        const { error } = await supabaseClient.rpc(
             "svr_apply_referral",
             {
                 input_code: code
@@ -392,7 +425,10 @@ async function applyReferral() {
 
         if (error) throw error;
 
-        showMessage(referralMessage, "Referral berhasil digunakan!");
+        showMessage(
+            referralMessage,
+            "Referral berhasil digunakan!"
+        );
 
         input.value = "";
 
@@ -407,13 +443,18 @@ async function applyReferral() {
 
 
 // ==========================================
-// COPY REFERRAL CODE
+// COPY REFERRAL
 // ==========================================
 
 async function copyReferral() {
-    const code = document.getElementById("referral-code").textContent;
+    const code =
+        document.getElementById("referral-code").textContent;
 
-    if (!code || code === "Loading..." || code === "Unavailable") {
+    if (
+        !code ||
+        code === "Loading..." ||
+        code === "Unavailable"
+    ) {
         return;
     }
 
@@ -461,16 +502,20 @@ document.getElementById("copy-referral-btn")
 // AUTH SESSION LISTENER
 // ==========================================
 
-supabaseClient.auth.onAuthStateChange((event, session) => {
-    if (event === "SIGNED_OUT") {
-        currentUser = null;
+supabaseClient.auth.onAuthStateChange(
+    (event, session) => {
 
-        stopMiningTimer();
+        if (event === "SIGNED_OUT") {
+            currentUser = null;
+            miningEndsAt = null;
 
-        dashboardSection.hidden = true;
-        authSection.hidden = false;
+            stopMiningTimer();
+
+            dashboardSection.hidden = true;
+            authSection.hidden = false;
+        }
     }
-});
+);
 
 
 // ==========================================
