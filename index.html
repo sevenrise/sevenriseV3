@@ -3,127 +3,321 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <meta name="theme-color" content="#080808">
+    <meta name="description" content="SevenRise V3 - SVR Points Mining Platform">
 
-    <title>SevenRise V3 - SVR Mining</title>
+    <title>SevenRise V3 | SVR Mining</title>
 
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=5">
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        [hidden] {
+            display: none !important;
+        }
+
+        body {
+            margin: 0;
+            background: #080808;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+        }
+
+        .container {
+            width: min(92%, 600px);
+            margin: 30px auto;
+        }
+
+        .card {
+            background: #151515;
+            border: 1px solid #b58b35;
+            border-radius: 15px;
+            padding: 22px;
+            margin-bottom: 20px;
+        }
+
+        h1, h2 {
+            color: #e5b94d;
+        }
+
+        input {
+            display: block;
+            width: 100%;
+            box-sizing: border-box;
+            padding: 13px;
+            margin: 12px 0;
+            background: #222;
+            color: white;
+            border: 1px solid #555;
+            border-radius: 8px;
+        }
+
+        button {
+            padding: 12px 18px;
+            margin: 5px 3px;
+            background: #d6a83d;
+            color: #111;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
+        .timer {
+            font-size: 38px;
+            font-weight: bold;
+            color: #e5b94d;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .balance {
+            font-size: 32px;
+            color: #e5b94d;
+            font-weight: bold;
+        }
+
+        .message {
+            color: #e5b94d;
+            overflow-wrap: anywhere;
+        }
+
+        .muted {
+            color: #aaa;
+        }
+
+        .full {
+            width: 100%;
+        }
+    </style>
 </head>
 
 <body>
 
-<header class="header">
-    <div class="logo">SEVEN<span>RISE</span></div>
-    <div class="version">V3</div>
-</header>
+<div class="container">
 
-<main class="container">
+    <!-- HEADER -->
+    <header class="card">
+        <h1>SevenRise</h1>
+        <p class="muted">V3 — SVR Points Mining</p>
+    </header>
 
-    <section class="hero">
-        <h1>THE FUTURE OF <span>SEVENRISE</span></h1>
-        <p>Welcome to the SevenRise Mining Ecosystem</p>
-    </section>
 
     <!-- AUTHENTICATION -->
     <section id="auth-section" class="card">
 
-        <h2>Welcome Back</h2>
-        <p class="subtitle">Login or create your SevenRise account</p>
+        <h2>Welcome to SevenRise</h2>
 
-        <div class="form-group">
-            <label>Email Address</label>
-            <input type="email" id="email" placeholder="Enter your email">
-        </div>
+        <p class="muted">
+            Login atau buat akun untuk memulai.
+        </p>
 
-        <div class="form-group">
-            <label>Password</label>
-            <input type="password" id="password" placeholder="Enter your password">
-        </div>
+        <input
+            type="email"
+            id="email"
+            placeholder="Email address"
+            autocomplete="email"
+        >
 
-        <button id="login-btn" class="btn-primary">LOGIN</button>
-        <button id="register-btn" class="btn-secondary">CREATE ACCOUNT</button>
+        <input
+            type="password"
+            id="password"
+            placeholder="Password"
+            autocomplete="current-password"
+        >
+
+        <button
+            type="button"
+            id="login-btn"
+            class="full"
+        >
+            LOGIN
+        </button>
+
+        <button
+            type="button"
+            id="register-btn"
+            class="full"
+        >
+            CREATE ACCOUNT
+        </button>
 
         <p id="auth-message" class="message"></p>
 
     </section>
 
+
     <!-- DASHBOARD -->
-    <section id="dashboard-section" hidden>
+    <main id="dashboard-section" hidden>
 
-        <div class="welcome">
-            <h2>SevenRise Dashboard</h2>
-            <p id="user-email">User</p>
-        </div>
+        <!-- USER -->
+        <section class="card">
 
-        <div class="balance-card">
-            <p>YOUR SVR POINTS</p>
-            <h1 id="balance">0</h1>
-            <span>SVR POINTS</span>
-        </div>
+            <h2>Dashboard</h2>
 
-        <div class="card mining-card">
-            <h2>SVR MINING</h2>
-            <p>Earn 1 SVR Point every minute.</p>
+            <p class="muted">Logged in as:</p>
 
-            <div class="timer" id="mining-timer">24:00:00</div>
+            <p id="user-email">Loading...</p>
 
-            <p id="mining-status">Mining is not active.</p>
+            <button
+                type="button"
+                id="logout-btn"
+            >
+                LOGOUT
+            </button>
 
-            <button id="start-mining-btn" class="btn-primary">
+        </section>
+
+
+        <!-- BALANCE -->
+        <section class="card">
+
+            <h2>SVR Balance</h2>
+
+            <div class="balance">
+                <span id="balance">0</span>
+            </div>
+
+            <p class="muted">SVR Points</p>
+
+        </section>
+
+
+        <!-- MINING -->
+        <section class="card">
+
+            <h2>SVR Mining</h2>
+
+            <p class="muted">
+                Mining duration: 24 hours
+            </p>
+
+            <div
+                id="mining-timer"
+                class="timer"
+            >
+                24:00:00
+            </div>
+
+            <p
+                id="mining-status"
+                class="muted"
+            >
+                Mining is not active.
+            </p>
+
+            <button
+                type="button"
+                id="start-mining-btn"
+                class="full"
+            >
                 START MINING
             </button>
 
-            <button id="claim-mining-btn" class="btn-secondary" disabled>
+            <button
+                type="button"
+                id="claim-mining-btn"
+                class="full"
+                disabled
+            >
                 CLAIM REWARD
             </button>
 
-            <p id="mining-message" class="message"></p>
-        </div>
+            <p
+                id="mining-message"
+                class="message"
+            ></p>
 
-        <div class="card">
-            <h2>REFERRAL PROGRAM</h2>
+            <p class="muted">
+                Reward: 1,440 SVR Points per completed session.
+            </p>
 
-            <p>Your Referral Code</p>
-            <div class="referral-code" id="referral-code">Loading...</div>
+        </section>
 
-            <button id="copy-referral-btn" class="btn-secondary">
-                COPY REFERRAL CODE
+
+        <!-- REFERRAL -->
+        <section class="card">
+
+            <h2>Referral Program</h2>
+
+            <p class="muted">Your referral code:</p>
+
+            <h3 id="referral-code">Loading...</h3>
+
+            <button
+                type="button"
+                id="copy-referral-btn"
+            >
+                COPY CODE
             </button>
 
-            <p>Total Referrals: <strong id="referral-count">0</strong></p>
-            <p>Referral Earnings: <strong id="referral-earnings">0</strong> SVR</p>
+            <p>
+                Successful referrals:
+                <strong id="referral-count">0</strong>
+            </p>
 
-            <div class="form-group">
-                <label>Enter Referral Code</label>
-                <input type="text" id="input-referral-code"
-                       placeholder="Enter referral code">
-            </div>
+            <p>
+                Referral earnings:
+                <strong id="referral-earnings">0</strong>
+                SVR Points
+            </p>
 
-            <button id="apply-referral-btn" class="btn-primary">
+            <hr>
+
+            <h3>Use Referral Code</h3>
+
+            <input
+                type="text"
+                id="input-referral-code"
+                placeholder="Enter referral code"
+                autocomplete="off"
+            >
+
+            <button
+                type="button"
+                id="apply-referral-btn"
+                class="full"
+            >
                 APPLY REFERRAL
             </button>
 
-            <p id="referral-message" class="message"></p>
-        </div>
+            <p
+                id="referral-message"
+                class="message"
+            ></p>
 
-        <div class="card">
-            <h2>ACCOUNT</h2>
-            <button id="logout-btn" class="btn-danger">LOGOUT</button>
-        </div>
+        </section>
 
-    </section>
+    </main>
 
-</main>
 
-<footer>
-    <p>© 2026 SevenRise Ecosystem. All Rights Reserved.</p>
-    <p>Powered by SevenRise V3</p>
-</footer>
+    <!-- FOOTER -->
+    <footer class="card">
+        <p class="muted">
+            SevenRise V3 © 2026
+        </p>
+        <p class="muted">
+            SVR Points are internal platform points,
+            not currently transferable blockchain tokens.
+        </p>
+    </footer>
 
-<script src="config.js"></script>
-<script src="app.js"></script>
+</div>
+
+
+<!-- SUPABASE LIBRARY -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<!-- PROJECT CONFIGURATION -->
+<script src="config.js?v=5"></script>
+
+<!-- MAIN APPLICATION -->
+<script src="app.js?v=5"></script>
 
 </body>
-              </html>
+                </html>
