@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#080808">
+  <title>SevenRise Mini App</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/@tonconnect/ui@2.3.0/dist/tonconnect-ui.min.js"></script>
+  <style>
+    :root{color-scheme:dark;--bg:#080808;--card:#151515;--gold:#e5b94d;--muted:#aaa;--line:#59451c}
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:#fff;font-family:Arial,sans-serif;padding:env(safe-area-inset-top) 14px env(safe-area-inset-bottom)}
+    .wrap{max-width:560px;margin:0 auto;padding:18px 0 28px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;margin:0 0 14px}
+    h1,h2{color:var(--gold);margin:0 0 12px}
+    h1{font-size:25px}h2{font-size:19px}
+    p{line-height:1.5}.muted{color:var(--muted);font-size:13px}
+    input{display:block;width:100%;padding:13px;margin:10px 0;background:#222;color:#fff;border:1px solid #555;border-radius:9px;font-size:15px}
+    button{width:100%;padding:13px;margin:6px 0;background:var(--gold);color:#111;border:0;border-radius:9px;font-weight:700;font-size:14px}
+    button:disabled{opacity:.45}
+    .secondary{background:transparent;color:var(--gold);border:1px solid var(--gold)}
+    .balance{font-size:32px;font-weight:800;color:var(--gold)}
+    .timer{text-align:center;font-size:37px;font-weight:800;color:var(--gold);font-variant-numeric:tabular-nums;margin:20px 0}
+    .message{color:var(--gold);font-size:13px;overflow-wrap:anywhere;min-height:18px}
+    .wallet-address{font-size:12px;overflow-wrap:anywhere;color:#ddd}
+    [hidden]{display:none!important}
+    #ton-connect{margin:10px 0}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <header class="card">
+    <h1>SevenRise</h1>
+    <p class="muted">Telegram Mini App · SVR Points Mining · TON Testnet</p>
+  </header>
+
+  <section id="auth" class="card">
+    <h2>Login SevenRise</h2>
+    <p class="muted">Gunakan akun SevenRise V3 yang sudah terdaftar.</p>
+    <input id="email" type="email" autocomplete="email" placeholder="Email">
+    <input id="password" type="password" autocomplete="current-password" placeholder="Password">
+    <button id="login">LOGIN</button>
+    <button id="register" class="secondary">BUAT AKUN</button>
+    <p id="auth-message" class="message"></p>
+  </section>
+
+  <main id="dashboard" hidden>
+    <section class="card">
+      <h2>Akun</h2>
+      <p id="user-email" class="muted"></p>
+      <button id="logout" class="secondary">LOGOUT</button>
+    </section>
+
+    <section class="card">
+      <h2>Connect TON Wallet</h2>
+      <p class="muted">Hubungkan Tonkeeper atau wallet TON lain melalui TON Connect. Untuk tahap ini jaringan yang digunakan adalah TON Testnet.</p>
+      <div id="ton-connect"></div>
+      <p id="wallet-status" class="message">Wallet belum terhubung.</p>
+      <p id="wallet-address" class="wallet-address"></p>
+      <p class="muted">Pastikan wallet berada di jaringan Testnet. Jangan kirim aset mainnet untuk pengujian.</p>
+    </section>
+
+    <section class="card">
+      <h2>SVR Balance</h2>
+      <div id="balance" class="balance">0</div>
+      <p class="muted">SVR Points · poin internal platform</p>
+    </section>
+
+    <section class="card">
+      <h2>Mining</h2>
+      <p class="muted">Kecepatan 1 SVR Point/menit · durasi sesi 24 jam.</p>
+      <div id="timer" class="timer">24:00:00</div>
+      <p id="mining-status" class="muted">Mining belum aktif.</p>
+      <button id="start-mining">START MINING</button>
+      <button id="claim-mining" class="secondary" disabled>CLAIM REWARD</button>
+      <p id="mining-message" class="message"></p>
+    </section>
+
+    <section class="card">
+      <h2>Referral</h2>
+      <p class="muted">Kode referral kamu</p>
+      <div id="referral-code" class="balance">—</div>
+      <button id="copy-referral" class="secondary">SALIN KODE</button>
+      <p class="muted">Referral valid: <strong id="referral-count">0</strong></p>
+      <p class="muted">Reward referral: <strong id="referral-earnings">0</strong> SVR Points</p>
+      <input id="input-referral" placeholder="Masukkan kode referral">
+      <button id="apply-referral">GUNAKAN REFERRAL</button>
+      <p id="referral-message" class="message"></p>
+    </section>
+  </main>
+
+  <footer class="muted" style="text-align:center;padding:8px">SevenRise © 2026 · SVR Points bukan token yang dapat ditransfer.</footer>
+</div>
+
+<script>
+(() => {
+  "use strict";
+
+  const SUPABASE_URL = "https://eyhvzkqjnpuepqedvprl.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_8octlvT4wMspfEX14uFMuA_ShwqQYbj";
+  const MANIFEST_URL = "https://sevenrise.github.io/sevenriseV3/tonconnect-manifest.json";
+  const TESTNET_CHAIN = "-3";
+
+  const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const $ = id => document.getElementById(id);
+  let user = null;
+  let endAt = null;
+  let timerHandle = null;
+  let tonUI = null;
+  let walletUnsubscribe = null;
+
+  const say = (id, message) => { $(id).textContent = message || ""; };
+  const format = n => Number(n || 0).toLocaleString("en-US");
+
+  function stopTimer() {
+    if (timerHandle) clearInterval(timerHandle);
+    timerHandle = null;
+  }
+
+  function tick() {
+    if (!endAt) return;
+    const left = Math.max(0, Math.floor((endAt.getTime() - Date.now()) / 1000));
+    const h = String(Math.floor(left / 3600)).padStart(2, "0");
+    const m = String(Math.floor((left % 3600) / 60)).padStart(2, "0");
+    const s = String(left % 60).padStart(2, "0");
+    $("timer").textContent = h + ":" + m + ":" + s;
+    if (left <= 0) {
+      $("mining-status").textContent = "Mining selesai. Reward siap diklaim.";
+      $("claim-mining").disabled = false;
+      stopTimer();
+    } else {
+      $("mining-status").textContent = "Mining sedang berjalan...";
+      $("claim-mining").disabled = true;
+    }
+  }
+
+  function initTonConnect() {
+    if (!window.TON_CONNECT_UI || !window.TON_CONNECT_UI.TonConnectUI) {
+      say("wallet-status", "TON Connect gagal dimuat. Muat ulang halaman dan coba lagi.");
+      return;
+    }
+    tonUI = new window.TON_CONNECT_UI.TonConnectUI({
+      manifestUrl: MANIFEST_URL,
+      buttonRootId: "ton-connect",
+      network: TESTNET_CHAIN
+    });
+
+    walletUnsubscribe = tonUI.onStatusChange(async wallet => {
+      if (!wallet || !wallet.account) {
+        say("wallet-status", "Wallet belum terhubung.");
+        $("wallet-address").textContent = "";
+        if (user) {
+          const { error } = await db.from("profiles")
+            .update({ wallet_address: null, wallet_network: null, wallet_connected_at: null })
+            .eq("id", user.id);
+          if (error) console.warn("Gagal memperbarui status wallet:", error.message);
+        }
+        return;
+      }
+
+      const chain = String(wallet.account.chain);
+      const address = wallet.account.address;
+
+      if (chain !== TESTNET_CHAIN) {
+        say("wallet-status", "Jaringan salah. Pilih TON Testnet di Tonkeeper, lalu hubungkan ulang.");
+        $("wallet-address").textContent = "Wallet terhubung pada chain " + chain + ", bukan Testnet.";
+        try { await tonUI.disconnect(); } catch (e) { console.warn(e); }
+        return;
+      }
+
+      if (!user) {
+        say("wallet-status", "Wallet tersambung. Login SevenRise untuk menyimpan alamat.");
+        $("wallet-address").textContent = address;
+        return;
+      }
+
+      const { data, error } = await db.from("profiles")
+        .update({
+          wallet_address: address,
+          wallet_network: "TON Testnet",
+          wallet_connected_at: new Date().toISOString()
+        })
+        .eq("id", user.id)
+        .select("id")
+        .maybeSingle();
+
+      if (error) {
+        say("wallet-status", "Wallet tersambung, tetapi gagal menyimpan: " + error.message);
+      } else if (!data) {
+        say("wallet-status", "Wallet tersambung, tetapi profil belum ditemukan di database.");
+      } else {
+        say("wallet-status", "TON Testnet berhasil terhubung dan tersimpan.");
+      }
+      $("wallet-address").textContent = address;
+    });
+
+    if (tonUI.wallet) {
+      const wallet = tonUI.wallet;
+      if (wallet.account && String(wallet.account.chain) === TESTNET_CHAIN) {
+        say("wallet-status", "Wallet TON Testnet sudah terhubung.");
+        $("wallet-address").textContent = wallet.account.address;
+      }
+    }
+  }
+
+  async function loadDashboard() {
+    const { data, error } = await db.rpc("svr_get_dashboard");
+    if (error) throw error;
+    const d = Array.isArray(data) ? data[0] : data;
+    if (!d) throw new Error("Data dashboard kosong.");
+
+    $("balance").textContent = format(d.balance);
+    $("referral-code").textContent = d.referral_code || "Tidak tersedia";
+    $("referral-count").textContent = format(d.referral_count);
+    $("referral-earnings").textContent = format(d.referral_earnings);
+
+    const mining = d.mining;
+    if (mining && mining.ends_at && mining.claimed !== true) {
+      endAt = new Date(mining.ends_at);
+      if (Number.isNaN(endAt.getTime())) throw new Error("Waktu mining tidak valid.");
+      $("start-mining").disabled = true;
+      stopTimer();
+      tick();
+      if (endAt.getTime() > Date.now()) timerHandle = setInterval(tick, 1000);
+    } else {
+      endAt = null;
+      stopTimer();
+      $("timer").textContent = "24:00:00";
+      $("mining-status").textContent = "Mining belum aktif.";
+      $("start-mining").disabled = false;
+      $("claim-mining").disabled = true;
+    }
+  }
+
+  async function showApp() {
+    const { data: { session }, error } = await db.auth.getSession();
+    if (error) throw error;
+    user = session ? session.user : null;
+    $("auth").hidden = !!user;
+    $("dashboard").hidden = !user;
+    if (!user) return;
+    $("user-email").textContent = user.email || "SevenRise Member";
+    await loadDashboard();
+    if (!tonUI) initTonConnect();
+  }
+
+  $("login").addEventListener("click", async () => {
+    const email = $("email").value.trim();
+    const password = $("password").value;
+    if (!email || !password) return say("auth-message", "Masukkan email dan password.");
+    $("login").disabled = true;
+    say("auth-message", "Sedang login...");
+    try {
+      const { error } = await db.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      await showApp();
+      say("auth-message", "");
+    } catch (e) { say("auth-message", e.message); }
+    finally { $("login").disabled = false; }
+  });
+
+  $("register").addEventListener("click", async () => {
+    const email = $("email").value.trim();
+    const password = $("password").value;
+    if (!email || !password) return say("auth-message", "Masukkan email dan password.");
+    if (password.length < 6) return say("auth-message", "Password minimal 6 karakter.");
+    $("register").disabled = true;
+    say("auth-message", "Mendaftarkan akun...");
+    try {
+      const { data, error } = await db.auth.signUp({ email, password });
+      if (error) throw error;
+      if (data.session) await showApp();
+      else say("auth-message", "Registrasi berhasil. Periksa email untuk konfirmasi.");
+    } catch (e) { say("auth-message", e.message); }
+    finally { $("register").disabled = false; }
+  });
+
+  $("logout").addEventListener("click", async () => {
+    const { error } = await db.auth.signOut();
+    if (error) return alert(error.message);
+    user = null;
+    stopTimer();
+    $("dashboard").hidden = true;
+    $("auth").hidden = false;
+  });
+
+  $("start-mining").addEventListener("click", async () => {
+    $("start-mining").disabled = true;
+    say("mining-message", "Memulai mining...");
+    try {
+      const { error } = await db.rpc("svr_start_mining");
+      if (error) throw error;
+      say("mining-message", "Mining berhasil dimulai.");
+      await loadDashboard();
+    } catch (e) {
+      say("mining-message", e.message);
+      $("start-mining").disabled = false;
+    }
+  });
+
+  $("claim-mining").addEventListener("click", async () => {
+    $("claim-mining").disabled = true;
+    say("mining-message", "Memproses reward...");
+    try {
+      const { error } = await db.rpc("svr_claim_mining");
+      if (error) throw error;
+      say("mining-message", "Reward berhasil diklaim.");
+      await loadDashboard();
+    } catch (e) {
+      say("mining-message", e.message);
+      $("claim-mining").disabled = false;
+    }
+  });
+
+  $("apply-referral").addEventListener("click", async () => {
+    const code = $("input-referral").value.trim();
+    if (!code) return say("referral-message", "Masukkan kode referral.");
+    $("apply-referral").disabled = true;
+    try {
+      const { error } = await db.rpc("svr_apply_referral", { input_code: code });
+      if (error) throw error;
+      $("input-referral").value = "";
+      say("referral-message", "Referral berhasil digunakan.");
+      await loadDashboard();
+    } catch (e) { say("referral-message", e.message); }
+    finally { $("apply-referral").disabled = false; }
+  });
+
+  $("copy-referral").addEventListener("click", async () => {
+    const code = $("referral-code").textContent;
+    if (!code || code === "—" || code === "Tidak tersedia") return;
+    try {
+      await navigator.clipboard.writeText(code);
+      say("referral-message", "Kode referral berhasil disalin.");
+    } catch (e) { say("referral-message", "Gagal menyalin kode."); }
+  });
+
+  db.auth.onAuthStateChange((event) => {
+    if (event === "SIGNED_OUT") {
+      user = null;
+      stopTimer();
+      $("dashboard").hidden = true;
+      $("auth").hidden = false;
+    }
+  });
+
+  if (window.Telegram && window.Telegram.WebApp) {
+    window.Telegram.WebApp.ready();
+    window.Telegram.WebApp.expand();
+  }
+
+  showApp().catch(e => say("auth-message", e.message));
+})();
+</script>
+</body>
+</html>
