@@ -33,7 +33,7 @@
 <div class="wrap">
   <header class="card">
     <h1>SevenRise</h1>
-    <p class="muted">Telegram Mini App · SVR Points Mining · TON Testnet</p>
+    <p class="muted">Telegram Mini App · SVR Points Mining · TON Mainnet</p>
   </header>
 
   <section id="auth" class="card">
@@ -55,11 +55,11 @@
 
     <section class="card">
       <h2>Connect TON Wallet</h2>
-      <p class="muted">Hubungkan Tonkeeper atau wallet TON lain melalui TON Connect. Untuk tahap ini jaringan yang digunakan adalah TON Testnet.</p>
+      <p class="muted">Hubungkan Tonkeeper atau wallet TON lain melalui TON Connect. Untuk tahap ini jaringan yang digunakan adalah TON Mainnet.</p>
       <div id="ton-connect"></div>
       <p id="wallet-status" class="message">Wallet belum terhubung.</p>
       <p id="wallet-address" class="wallet-address"></p>
-      <p class="muted">Pastikan wallet berada di jaringan Testnet. Jangan kirim aset mainnet untuk pengujian.</p>
+      <p class="muted">Pastikan Tonkeeper berada di jaringan TON Mainnet.</p>
     </section>
 
     <section class="card">
@@ -101,7 +101,7 @@
   const SUPABASE_URL = "https://eyhvzkqjnpuepqedvprl.supabase.co";
   const SUPABASE_ANON_KEY = "sb_publishable_8octlvT4wMspfEX14uFMuA_ShwqQYbj";
   const MANIFEST_URL = "https://sevenrise.github.io/sevenriseV3/tonconnect-manifest.json";
-  const TESTNET_CHAIN = "-3";
+  const MAINNET_CHAIN = "-239";
 
   const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   const $ = id => document.getElementById(id);
@@ -144,7 +144,7 @@
     tonUI = new window.TON_CONNECT_UI.TonConnectUI({
       manifestUrl: MANIFEST_URL,
       buttonRootId: "ton-connect",
-      network: TESTNET_CHAIN
+      network: MAINNET_CHAIN
     });
 
     walletUnsubscribe = tonUI.onStatusChange(async wallet => {
@@ -163,9 +163,9 @@
       const chain = String(wallet.account.chain);
       const address = wallet.account.address;
 
-      if (chain !== TESTNET_CHAIN) {
-        say("wallet-status", "Jaringan salah. Pilih TON Testnet di Tonkeeper, lalu hubungkan ulang.");
-        $("wallet-address").textContent = "Wallet terhubung pada chain " + chain + ", bukan Testnet.";
+      if (chain !== MAINNET_CHAIN) {
+        say("wallet-status", "Jaringan salah. Pilih TON Mainnet di Tonkeeper, lalu hubungkan ulang.");
+        $("wallet-address").textContent = "Wallet terhubung pada chain " + chain + ", bukan Mainnet.";
         try { await tonUI.disconnect(); } catch (e) { console.warn(e); }
         return;
       }
@@ -179,7 +179,7 @@
       const { data, error } = await db.from("profiles")
         .update({
           wallet_address: address,
-          wallet_network: "TON Testnet",
+          wallet_network: "TON Mainnet",
           wallet_connected_at: new Date().toISOString()
         })
         .eq("id", user.id)
@@ -191,15 +191,15 @@
       } else if (!data) {
         say("wallet-status", "Wallet tersambung, tetapi profil belum ditemukan di database.");
       } else {
-        say("wallet-status", "TON Testnet berhasil terhubung dan tersimpan.");
+        say("wallet-status", "TON Mainnet berhasil terhubung dan tersimpan.");
       }
       $("wallet-address").textContent = address;
     });
 
     if (tonUI.wallet) {
       const wallet = tonUI.wallet;
-      if (wallet.account && String(wallet.account.chain) === TESTNET_CHAIN) {
-        say("wallet-status", "Wallet TON Testnet sudah terhubung.");
+      if (wallet.account && String(wallet.account.chain) === MAINNET_CHAIN) {
+        say("wallet-status", "Wallet TON Mainnet sudah terhubung.");
         $("wallet-address").textContent = wallet.account.address;
       }
     }
