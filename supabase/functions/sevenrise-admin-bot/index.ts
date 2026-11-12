@@ -127,11 +127,9 @@ Deno.serve(async (req) => {
   }
 
   const expectedSecret = Deno.env.get("TELEGRAM_WEBHOOK_SECRET");
-  if (expectedSecret) {
-    const receivedSecret = req.headers.get("x-telegram-bot-api-secret-token");
-    if (receivedSecret !== expectedSecret) {
-      return new Response("Forbidden", { status: 403, headers: corsHeaders });
-    }
+  const receivedSecret = req.headers.get("x-telegram-bot-api-secret-token");
+  if (!expectedSecret || receivedSecret !== expectedSecret) {
+    return new Response("Forbidden", { status: 403, headers: corsHeaders });
   }
 
   try {
@@ -140,7 +138,9 @@ Deno.serve(async (req) => {
     const message = update.message;
     const callback = update.callback_query;
     const fromId = String(message?.from?.id ?? callback?.from?.id ?? "");
-    if (fromId !== adminId) {
+    const chatType = message?.chat?.type ?? callback?.message?.chat?.type;
+    const chatIdForAuth = String(message?.chat?.id ?? callback?.message?.chat?.id ?? "");
+    if (fromId !== adminId || chatType !== "private" || chatIdForAuth !== adminId) {
       // Silently reject all non-admin users. Never reveal that this is an admin bot.
       return new Response("ok", { status: 200, headers: corsHeaders });
     }
