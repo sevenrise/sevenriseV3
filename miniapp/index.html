@@ -27,6 +27,26 @@
     .wallet-address{font-size:12px;overflow-wrap:anywhere;color:#ddd}
     [hidden]{display:none!important}
     #ton-connect{margin:10px 0}
+    .eyebrow{color:var(--gold);font-size:10px;letter-spacing:2.5px;font-weight:800;margin:0 0 9px}
+    .welcome{background:linear-gradient(145deg,#211a0b,#151515 68%);padding:23px 18px}
+    .welcome h2,.page-intro h2{font-size:22px;line-height:1.25}
+    .page-view{display:none;animation:fadeIn .2s ease}
+    .page-view.active{display:block}
+    @keyframes fadeIn{from{opacity:.5;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+    .quick-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+    .quick-action{background:#211b0e;color:var(--gold);border:1px solid var(--line);text-align:left;min-height:76px}
+    .quick-action span{display:block;color:#bbb;font-size:11px;font-weight:400;margin-top:6px}
+    .stats-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:18px 0 4px}
+    .stats-row div{background:#202020;border:1px solid #393027;border-radius:12px;padding:14px}
+    .stats-row strong{display:block;color:var(--gold);font-size:22px}
+    .stats-row span{display:block;color:var(--muted);font-size:11px;margin-top:5px}
+    .info-card{border-style:dashed}
+    .bottom-nav{position:fixed;z-index:10;left:0;right:0;bottom:0;display:flex;justify-content:space-around;gap:2px;padding:8px 5px calc(8px + env(safe-area-inset-bottom));background:rgba(10,10,10,.97);border-top:1px solid #4b3b1c;backdrop-filter:blur(12px)}
+    .nav-item{width:auto;flex:1;margin:0;padding:7px 2px;background:transparent;color:#999;border-radius:9px;font-size:10px;font-weight:600}
+    .nav-item span{display:block;font-size:19px;line-height:23px;margin-bottom:3px}
+    .nav-item.active{background:#241d0e;color:var(--gold)}
+    body{padding-bottom:calc(78px + env(safe-area-inset-bottom))}
+    @media(min-width:560px){.bottom-nav{left:50%;right:auto;transform:translateX(-50%);width:560px;border-left:1px solid #4b3b1c;border-right:1px solid #4b3b1c;border-radius:14px 14px 0 0}}
   </style>
 </head>
 <body>
@@ -47,49 +67,114 @@
   </section>
 
   <main id="dashboard" hidden>
-    <section class="card">
-      <h2>Akun</h2>
-      <p id="user-email" class="muted"></p>
-      <button id="logout" class="secondary">LOGOUT</button>
+    <section class="page-view active" data-view="home">
+      <div class="welcome card">
+        <p class="eyebrow">SEVENRISE ECOSYSTEM</p>
+        <h2>Selamat datang di SevenRise</h2>
+        <p class="muted">Kumpulkan SVR Points melalui mining dan aktivitas komunitas. Pantau saldo serta perkembangan akunmu dari satu tempat.</p>
+      </div>
+      <section class="card">
+        <h2>SVR Points</h2>
+        <div id="balance" class="balance">0</div>
+        <p class="muted">Ini adalah poin internal SevenRise, bukan token on-chain dan belum dapat ditransfer.</p>
+      </section>
+      <section class="card">
+        <h2>Mulai dari sini</h2>
+        <p class="muted">Pilih menu di navigasi bawah untuk membuka fitur secara terpisah.</p>
+        <div class="quick-grid">
+          <button class="quick-action" data-goto="mining">⛏ Mining<span>Mulai kumpulkan poin</span></button>
+          <button class="quick-action" data-goto="referral">♧ Referral<span>Ajak teman bergabung</span></button>
+          <button class="quick-action" data-goto="wallet">◈ Wallet<span>Hubungkan TON Wallet</span></button>
+        </div>
+      </section>
     </section>
 
-    <section class="card">
-      <h2>Connect TON Wallet</h2>
-      <p class="muted">Hubungkan Tonkeeper atau wallet TON lain melalui TON Connect. Untuk tahap ini jaringan yang digunakan adalah TON Mainnet.</p>
-      <div id="ton-connect"></div>
-      <p id="wallet-status" class="message">Wallet belum terhubung.</p>
-      <p id="wallet-address" class="wallet-address"></p>
-      <p class="muted">Pastikan Tonkeeper berada di jaringan TON Mainnet.</p>
+    <section class="page-view" data-view="mining">
+      <section class="card page-intro">
+        <p class="eyebrow">EARN SVR POINTS</p>
+        <h2>⛏ Mining Center</h2>
+        <p class="muted">Aktifkan sesi mining untuk mengumpulkan 1 SVR Point setiap menit. Satu sesi berlangsung selama 24 jam dengan total potensi 1.440 SVR Points.</p>
+      </section>
+      <section class="card">
+        <h2>Status Mining</h2>
+        <div id="timer" class="timer">24:00:00</div>
+        <p id="mining-status" class="muted">Mining belum aktif.</p>
+        <button id="start-mining">MULAI MINING</button>
+        <button id="claim-mining" class="secondary" disabled>KLAIM REWARD</button>
+        <p id="mining-message" class="message"></p>
+      </section>
+      <section class="card info-card">
+        <h2>Bagaimana mining bekerja?</h2>
+        <p class="muted">1. Tekan Mulai Mining untuk memulai sesi 24 jam.</p>
+        <p class="muted">2. Poin dihitung berdasarkan durasi sesi sesuai aturan platform.</p>
+        <p class="muted">3. Setelah sesi selesai, tekan Klaim Reward untuk memasukkan poin ke saldo akun.</p>
+        <p class="muted">Mining menghasilkan SVR Points internal, bukan transfer token ke wallet.</p>
+      </section>
     </section>
 
-    <section class="card">
-      <h2>SVR Balance</h2>
-      <div id="balance" class="balance">0</div>
-      <p class="muted">SVR Points · poin internal platform</p>
+    <section class="page-view" data-view="referral">
+      <section class="card page-intro">
+        <p class="eyebrow">GROW THE COMMUNITY</p>
+        <h2>♧ Referral Program</h2>
+        <p class="muted">Bagikan kode referral kepada teman. Ketika teman bergabung dan referral tervalidasi, kamu berhak memperoleh bonus sesuai ketentuan SevenRise.</p>
+      </section>
+      <section class="card">
+        <h2>Kode Referral Saya</h2>
+        <div id="referral-code" class="balance">—</div>
+        <button id="copy-referral" class="secondary">SALIN KODE</button>
+        <div class="stats-row">
+          <div><strong id="referral-count">0</strong><span>Referral valid</span></div>
+          <div><strong id="referral-earnings">0</strong><span>SVR Points didapat</span></div>
+        </div>
+      </section>
+      <section class="card">
+        <h2>Punya kode undangan?</h2>
+        <p class="muted">Masukkan kode dari teman yang mengundangmu. Kode hanya dapat digunakan sesuai aturan referral akun.</p>
+        <input id="input-referral" placeholder="Masukkan kode referral">
+        <button id="apply-referral">GUNAKAN KODE</button>
+        <p id="referral-message" class="message"></p>
+      </section>
+      <section class="card info-card">
+        <h2>Bonus komunitas</h2>
+        <p class="muted">Bonus yang direncanakan untuk setiap referral valid adalah 5.000 SVR Points. Perhitungan final mengikuti validasi sistem.</p>
+      </section>
     </section>
 
-    <section class="card">
-      <h2>Mining</h2>
-      <p class="muted">Kecepatan 1 SVR Point/menit · durasi sesi 24 jam.</p>
-      <div id="timer" class="timer">24:00:00</div>
-      <p id="mining-status" class="muted">Mining belum aktif.</p>
-      <button id="start-mining">START MINING</button>
-      <button id="claim-mining" class="secondary" disabled>CLAIM REWARD</button>
-      <p id="mining-message" class="message"></p>
+    <section class="page-view" data-view="wallet">
+      <section class="card page-intro">
+        <p class="eyebrow">TON CONNECT</p>
+        <h2>◈ TON Wallet</h2>
+        <p class="muted">Hubungkan Tonkeeper atau wallet TON yang mendukung TON Connect untuk mengaitkan alamat wallet dengan akun SevenRise.</p>
+      </section>
+      <section class="card">
+        <h2>Hubungkan Wallet</h2>
+        <div id="ton-connect"></div>
+        <p id="wallet-status" class="message">Wallet belum terhubung.</p>
+        <p id="wallet-address" class="wallet-address"></p>
+        <p class="muted">Aplikasi diarahkan ke TON Mainnet. Pastikan jaringan wallet sesuai sebelum melakukan transaksi. Menghubungkan wallet tidak otomatis memindahkan atau mengirim aset.</p>
+      </section>
     </section>
 
-    <section class="card">
-      <h2>Referral</h2>
-      <p class="muted">Kode referral kamu</p>
-      <div id="referral-code" class="balance">—</div>
-      <button id="copy-referral" class="secondary">SALIN KODE</button>
-      <p class="muted">Referral valid: <strong id="referral-count">0</strong></p>
-      <p class="muted">Reward referral: <strong id="referral-earnings">0</strong> SVR Points</p>
-      <input id="input-referral" placeholder="Masukkan kode referral">
-      <button id="apply-referral">GUNAKAN REFERRAL</button>
-      <p id="referral-message" class="message"></p>
+    <section class="page-view" data-view="profile">
+      <section class="card page-intro">
+        <p class="eyebrow">ACCOUNT SETTINGS</p>
+        <h2>Profil Akun</h2>
+        <p class="muted">Informasi akun yang sedang digunakan untuk mengakses SevenRise Mini App.</p>
+      </section>
+      <section class="card">
+        <h2>Akun Saya</h2>
+        <p id="user-email" class="muted"></p>
+        <button id="logout" class="secondary">KELUAR DARI AKUN</button>
+      </section>
     </section>
   </main>
+  <nav id="bottom-nav" class="bottom-nav" hidden aria-label="Navigasi utama">
+    <button class="nav-item active" data-goto="home"><span>⌂</span>Home</button>
+    <button class="nav-item" data-goto="mining"><span>⛏</span>Mining</button>
+    <button class="nav-item" data-goto="referral"><span>♧</span>Referral</button>
+    <button class="nav-item" data-goto="wallet"><span>◈</span>Wallet</button>
+    <button class="nav-item" data-goto="profile"><span>☻</span>Profil</button>
+  </nav>
 
   <footer class="muted" style="text-align:center;padding:8px">SevenRise © 2026 · SVR Points bukan token yang dapat ditransfer.</footer>
 </div>
@@ -205,6 +290,20 @@
     }
   }
 
+  function navigateTo(view) {
+    document.querySelectorAll(".page-view").forEach(el => {
+      el.classList.toggle("active", el.dataset.view === view);
+    });
+    document.querySelectorAll(".nav-item").forEach(el => {
+      el.classList.toggle("active", el.dataset.goto === view);
+    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  document.querySelectorAll("[data-goto]").forEach(button => {
+    button.addEventListener("click", () => navigateTo(button.dataset.goto));
+  });
+
   async function loadDashboard() {
     const { data, error } = await db.rpc("svr_get_dashboard");
     if (error) throw error;
@@ -240,6 +339,7 @@
     user = session ? session.user : null;
     $("auth").hidden = !!user;
     $("dashboard").hidden = !user;
+    $("bottom-nav").hidden = !user;
     if (!user) return;
     $("user-email").textContent = user.email || "SevenRise Member";
     await loadDashboard();
@@ -283,6 +383,7 @@
     user = null;
     stopTimer();
     $("dashboard").hidden = true;
+    $("bottom-nav").hidden = true;
     $("auth").hidden = false;
   });
 
