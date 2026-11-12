@@ -83,7 +83,8 @@
     <input id="password" type="password" autocomplete="current-password" placeholder="Password">
     <button id="login">LOGIN</button>
     <button id="register" class="secondary">BUAT AKUN</button>
-    <p id="auth-message" class="message"></p>
+    <button id="forgot-password" class="secondary" type="button">LUPA PASSWORD?</button>
+    <p id="auth-message" class="message" aria-live="polite"></p>
   </section>
 
   <main id="dashboard" hidden>
@@ -474,6 +475,24 @@
       say("auth-message", "");
     } catch (e) { say("auth-message", e.message); }
     finally { $("login").disabled = false; }
+  });
+
+  $("forgot-password").addEventListener("click", async () => {
+    const email = $("email").value.trim();
+    if (!email) return say("auth-message", "Masukkan email akun terlebih dahulu.");
+    $("forgot-password").disabled = true;
+    say("auth-message", "Mengirim tautan pemulihan password...");
+    try {
+      const { error } = await db.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + window.location.pathname
+      });
+      if (error) throw error;
+      say("auth-message", "Jika email terdaftar, tautan pemulihan password akan dikirim. Periksa Inbox dan folder Spam.");
+    } catch (e) {
+      say("auth-message", "Gagal mengirim pemulihan: " + e.message);
+    } finally {
+      $("forgot-password").disabled = false;
+    }
   });
 
   $("register").addEventListener("click", async () => {
