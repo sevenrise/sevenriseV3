@@ -41,6 +41,20 @@
     .stats-row strong{display:block;color:var(--gold);font-size:22px}
     .stats-row span{display:block;color:var(--muted);font-size:11px;margin-top:5px}
     .info-card{border-style:dashed}
+    .airdrop-summary{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .airdrop-summary div{background:#202020;border:1px solid #393027;border-radius:12px;padding:13px}
+    .airdrop-summary strong{display:block;color:var(--gold);font-size:23px;overflow-wrap:anywhere}
+    .airdrop-summary span{display:block;color:var(--muted);font-size:11px;margin-top:5px}
+    .airdrop-list{display:grid;gap:12px}
+    .task-card{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:16px}
+    .task-card h3{margin:0 0 8px;font-size:16px;color:#fff}
+    .task-card p{font-size:13px;color:var(--muted);line-height:1.5;margin:7px 0}
+    .task-meta{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin:12px 0}
+    .task-reward{color:var(--gold);font-size:13px;font-weight:800}
+    .task-status{font-size:11px;border:1px solid #655126;color:#e8c86c;border-radius:30px;padding:5px 9px}
+    .task-status.done{border-color:#327b54;color:#7fe0a6}
+    .task-card button{margin-bottom:0}
+    .task-card button:disabled{background:#26392d;color:#a7dfb8;opacity:1}
     .bottom-nav{position:fixed;z-index:10;left:0;right:0;bottom:0;display:flex;justify-content:space-around;gap:2px;padding:8px 5px calc(8px + env(safe-area-inset-bottom));background:rgba(10,10,10,.97);border-top:1px solid #4b3b1c;backdrop-filter:blur(12px)}
     .nav-item{width:auto;flex:1;margin:0;padding:7px 2px;background:transparent;color:#999;border-radius:9px;font-size:10px;font-weight:600}
     .nav-item span{display:block;font-size:19px;line-height:23px;margin-bottom:3px}
@@ -140,6 +154,26 @@
       </section>
     </section>
 
+    <section class="page-view" data-view="airdrop">
+      <section class="card page-intro">
+        <p class="eyebrow">SEVENRISE REWARDS</p>
+        <h2>🎁 Airdrop Center</h2>
+        <p class="muted">Selesaikan misi komunitas untuk mengumpulkan SVR Points. Baca instruksi setiap tugas, lakukan aktivitasnya, lalu ajukan verifikasi.</p>
+      </section>
+      <section class="card">
+        <div class="airdrop-summary">
+          <div><strong id="airdrop-completed">0</strong><span>Tugas selesai</span></div>
+          <div><strong id="airdrop-total-reward">0</strong><span>SVR Points diperoleh</span></div>
+        </div>
+        <p id="airdrop-message" class="message" aria-live="polite">Memuat daftar tugas...</p>
+      </section>
+      <section id="airdrop-task-list" class="airdrop-list" aria-live="polite"></section>
+      <section class="card info-card">
+        <h2>Ketentuan Airdrop</h2>
+        <p class="muted">Tekan Verifikasi hanya setelah tugas benar-benar diselesaikan. Tombol ini mengirim permintaan ke sistem SevenRise; reward hanya boleh diberikan satu kali untuk setiap tugas yang tervalidasi.</p>
+      </section>
+    </section>
+
     <section class="page-view" data-view="wallet">
       <section class="card page-intro">
         <p class="eyebrow">TON CONNECT</p>
@@ -172,6 +206,7 @@
     <button class="nav-item active" data-goto="home"><span>⌂</span>Home</button>
     <button class="nav-item" data-goto="mining"><span>⛏</span>Mining</button>
     <button class="nav-item" data-goto="referral"><span>♧</span>Referral</button>
+    <button class="nav-item" data-goto="airdrop"><span>🎁</span>Airdrop</button>
     <button class="nav-item" data-goto="wallet"><span>◈</span>Wallet</button>
     <button class="nav-item" data-goto="profile"><span>☻</span>Profil</button>
   </nav>
@@ -304,6 +339,79 @@
     button.addEventListener("click", () => navigateTo(button.dataset.goto));
   });
 
+  async function loadAirdropTasks() {
+    const list = $("airdrop-task-list");
+    say("airdrop-message", "Memuat daftar tugas...");
+    list.innerHTML = "";
+    try {
+      const [{ data: tasks, error: taskError }, { data: completed, error: completedError }] = await Promise.all([
+        db.from("airdrop_tasks").select("id,title,description,reward_points").eq("is_active", true).order("id"),
+        db.from("user_tasks").select("task_id,completed_at").eq("user_id", user.id)
+      ]);
+      if (taskError) throw taskError;
+      if (completedError) throw completedError;
+      const doneMap = new Map((completed || []).map(row => [String(row.task_id), row]));
+      const rows = tasks || [];
+      const doneRows = rows.filter(task => doneMap.has(String(task.id)));
+      const earned = doneRows.reduce((sum, task) => sum + Number(task.reward_points || 0), 0);
+      $("airdrop-completed").textContent = format(doneRows.length) + "/" + format(rows.length);
+      $("airdrop-total-reward").textContent = format(earned);
+      if (!rows.length) {
+        say("airdrop-message", "Belum ada tugas Airdrop yang tersedia. Silakan cek kembali nanti.");
+        return;
+      }
+      say("airdrop-message", "Tersedia " + rows.length + " tugas Airdrop.");
+      rows.forEach(task => {
+        const done = doneMap.has(String(task.id));
+        const article = document.createElement("article");
+        article.className = "task-card";
+        const title = document.createElement("h3");
+        title.textContent = task.title || "Misi SevenRise";
+        const description = document.createElement("p");
+        description.textContent = task.description || "Selesaikan misi ini untuk mendukung komunitas SevenRise.";
+        const meta = document.createElement("div");
+        meta.className = "task-meta";
+        const reward = document.createElement("span");
+        reward.className = "task-reward";
+        reward.textContent = "+" + format(task.reward_points) + " SVR Points";
+        const status = document.createElement("span");
+        status.className = "task-status" + (done ? " done" : "");
+        status.textContent = done ? "✓ Selesai" : "Belum selesai";
+        const button = document.createElement("button");
+        button.className = done ? "secondary" : "";
+        button.disabled = done;
+        button.textContent = done ? "SUDAH DIVERIFIKASI" : "VERIFIKASI TUGAS";
+        button.addEventListener("click", async () => {
+          if (!user) return say("airdrop-message", "Silakan login terlebih dahulu.");
+          const accepted = window.confirm("Pastikan kamu benar-benar telah menyelesaikan tugas ini. Lanjutkan mengajukan verifikasi?");
+          if (!accepted) return;
+          button.disabled = true;
+          button.textContent = "MEMERIKSA...";
+          say("airdrop-message", "Mengirim permintaan verifikasi...");
+          try {
+            const { data, error } = await db.rpc("svr_verify_airdrop_task", { input_task_id: task.id });
+            if (error) throw error;
+            const result = Array.isArray(data) ? data[0] : data;
+            if (result && result.success === false) throw new Error(result.message || "Verifikasi tugas ditolak.");
+            say("airdrop-message", result && result.message ? result.message : "Tugas berhasil diverifikasi.");
+            await loadAirdropTasks();
+            await loadDashboard();
+          } catch (e) {
+            say("airdrop-message", "Verifikasi belum berhasil: " + e.message);
+            button.disabled = false;
+            button.textContent = "VERIFIKASI TUGAS";
+          }
+        });
+        meta.append(reward,status);
+        article.append(title,description,meta,button);
+        list.append(article);
+      });
+    } catch (e) {
+      say("airdrop-message", "Gagal memuat tugas: " + e.message);
+      list.innerHTML = "";
+    }
+  }
+
   async function loadDashboard() {
     const { data, error } = await db.rpc("svr_get_dashboard");
     if (error) throw error;
@@ -343,6 +451,7 @@
     if (!user) return;
     $("user-email").textContent = user.email || "SevenRise Member";
     await loadDashboard();
+    await loadAirdropTasks();
     if (!tonUI) initTonConnect();
   }
 
