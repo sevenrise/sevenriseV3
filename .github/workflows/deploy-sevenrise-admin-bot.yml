@@ -30,7 +30,7 @@ jobs:
         run: |
           test -n "$SUPABASE_ACCESS_TOKEN" || (echo "Missing SUPABASE_ACCESS_TOKEN GitHub secret" && exit 1)
           test -n "$SUPABASE_PROJECT_REF" || (echo "Missing SUPABASE_PROJECT_REF GitHub secret" && exit 1)
-          supabase functions deploy sevenrise-admin-bot --project-ref "$SUPABASE_PROJECT_REF" --no-verify-jwt
+          supabase functions deploy sevenrise-admin-bot --project-ref "$SUPABASE_PROJECT_REF" --no-verify-jwt --yes
 
       - name: Configure function secrets
         env:
