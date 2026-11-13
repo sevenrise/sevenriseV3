@@ -41,7 +41,7 @@ jobs:
         run: |
           test -n "$TELEGRAM_ADMIN_BOT_TOKEN" || (echo "Missing TELEGRAM_ADMIN_BOT_TOKEN GitHub secret" && exit 1)
           test -n "$TELEGRAM_WEBHOOK_SECRET" || (echo "Missing TELEGRAM_WEBHOOK_SECRET GitHub secret" && exit 1)
-          supabase secrets set --project-ref "$SUPABASE_PROJECT_REF" TELEGRAM_ADMIN_BOT_TOKEN="$TELEGRAM_ADMIN_BOT_TOKEN" TELEGRAM_ADMIN_ID="1512444619" TELEGRAM_WEBHOOK_SECRET="$TELEGRAM_WEBHOOK_SECRET"
+          supabase secrets set --project-ref "$SUPABASE_PROJECT_REF" --yes TELEGRAM_ADMIN_BOT_TOKEN="$TELEGRAM_ADMIN_BOT_TOKEN" TELEGRAM_ADMIN_ID="1512444619" TELEGRAM_WEBHOOK_SECRET="$TELEGRAM_WEBHOOK_SECRET"
 
       - name: Set Telegram webhook
         env:
