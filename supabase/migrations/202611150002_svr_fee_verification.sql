@@ -126,10 +126,53 @@ set search_path = public, pg_temp
 as $$
 declare
   v_request public.svr_withdrawal_requests%rowtype;
+  v_user_id uuid;
   v_balance numeric;
 begin
-  if input_request_id is null or input_tx_hash !~ '^[0-9a-fA-F]{64}$' then
+  if input_request_id is null or input_tx_hash !~ '^[0-9a-fA-F]{64}
+  update public.profiles
+  set points = points - v_request.points_amount
+  where id = v_request.user_id;
+
+  update public.svr_withdrawal_requests
+  set status = 'paid',
+      payout_tx_hash = lower(input_tx_hash),
+      paid_at = now(),
+      updated_at = now()
+  where id = input_request_id;
+
+  return jsonb_build_object(
+    'success', true,
+    'request_id', input_request_id,
+    'status', 'paid',
+    'points_debited', v_request.points_amount,
+    'payout_tx_hash', lower(input_tx_hash)
+  );
+end;
+$$;
+
+revoke all on function public.svr_finalize_withdrawal_payout(uuid,text) from public, anon, authenticated;
+grant execute on function public.svr_finalize_withdrawal_payout(uuid,text) to service_role;
+ then
     raise exception 'ID permintaan atau hash transaksi tidak valid.';
+  end if;
+
+  select user_id into v_user_id
+  from public.svr_withdrawal_requests
+  where id = input_request_id;
+
+  if not found then
+    raise exception 'Permintaan penarikan tidak ditemukan.';
+  end if;
+
+  -- Keep the same lock order as request creation: profile first, request second.
+  select points into v_balance
+  from public.profiles
+  where id = v_user_id
+  for update;
+
+  if not found or v_balance is null then
+    raise exception 'Profil pengguna tidak ditemukan.';
   end if;
 
   select * into v_request
@@ -137,22 +180,13 @@ begin
   where id = input_request_id
   for update;
 
-  if not found then
-    raise exception 'Permintaan penarikan tidak ditemukan.';
-  end if;
   if v_request.status <> 'approved' then
     raise exception 'Permintaan belum disetujui atau sudah diproses.';
   end if;
   if v_request.payout_tx_hash is not null then
     raise exception 'Hash payout sudah tercatat.';
   end if;
-
-  select points into v_balance
-  from public.profiles
-  where id = v_request.user_id
-  for update;
-
-  if not found or v_balance is null or v_balance < v_request.points_amount then
+  if v_balance < v_request.points_amount then
     raise exception 'Saldo poin tidak mencukupi untuk penyelesaian payout.';
   end if;
 
