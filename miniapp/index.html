@@ -77,9 +77,13 @@
     .language-toggle{width:auto;margin:0;padding:7px 11px;background:#171717;color:var(--gold);border:1px solid var(--line);border-radius:20px;font-size:11px;font-weight:700}
     .language-panel{background:#151515;border:1px solid var(--line);border-radius:12px;padding:10px;margin:0 0 12px}
     .language-panel[hidden]{display:none!important}
-    #google_translate_element{min-height:30px}
-    #google_translate_element .goog-te-gadget{color:#aaa;font-size:11px}
-    #google_translate_element select{display:block;width:100%;max-width:100%;padding:9px;margin:4px 0;background:#222;color:#fff;border:1px solid #59451c;border-radius:8px;font-size:13px}
+    #google_translate_element{min-height:0}
+    .language-panel label{display:block;margin:0 0 5px}
+    .language-panel #language-search{margin:6px 0 9px;padding:12px;border-color:#70551f}
+    .language-results{display:grid;grid-template-columns:1fr 1fr;gap:7px;max-height:245px;overflow-y:auto;overscroll-behavior:contain}
+    .language-option{width:100%;margin:0;padding:10px 8px;background:#222;color:#eee;border:1px solid #403723;border-radius:8px;text-align:left;font-size:12px;font-weight:600}
+    .language-option:active,.language-option:focus{border-color:var(--gold);color:var(--gold);outline:none}
+    .language-empty{grid-column:1/-1;padding:10px;color:var(--muted);font-size:12px;text-align:center}
     .goog-te-banner-frame{display:none!important}
     body{top:0!important}
   </style>
@@ -93,9 +97,13 @@
     <button id="language-toggle" class="language-toggle" type="button" aria-expanded="false">🌐 Bahasa / Language</button>
   </div>
   <section id="language-panel" class="language-panel" hidden>
-    <p class="muted" style="margin:0 0 7px">Pilih bahasa tampilan. Terjemahan disediakan oleh Google Translate.</p>
-    <div id="google_translate_element"></div>
-    <p id="language-message" class="muted" style="margin:6px 0 0">Memuat pilihan bahasa saat panel dibuka...</p>
+    <label for="language-search" class="muted">Cari bahasa yang kamu inginkan</label>
+    <input id="language-search" type="search" autocomplete="off" placeholder="Ketik nama bahasa... contoh: English">
+    <div id="language-results" class="language-results" aria-live="polite">
+      <p class="muted">Memuat daftar bahasa...</p>
+    </div>
+    <div id="google_translate_element" hidden></div>
+    <p id="language-message" class="muted" style="margin:6px 0 0">Pilih bahasa dari hasil pencarian.</p>
   </section>
 
   <section id="auth" class="card">
@@ -552,9 +560,59 @@
   }
 
 
-  // Language selector: Google Translate exposes its supported language list.
+  // Searchable language picker backed by Google Translate's supported languages.
   let languageWidgetRequested = false;
-  let languageWidgetReady = false;
+  let languageObserver = null;
+  let languageChoices = [];
+
+  function renderLanguageChoices(query = "") {
+    const results = $("language-results");
+    const needle = query.trim().toLocaleLowerCase();
+    const filtered = languageChoices.filter(item =>
+      item.label.toLocaleLowerCase().includes(needle) ||
+      item.value.toLocaleLowerCase().includes(needle)
+    );
+    results.innerHTML = "";
+    if (!filtered.length) {
+      const empty = document.createElement("p");
+      empty.className = "language-empty";
+      empty.textContent = "Bahasa tidak ditemukan. Coba kata kunci lain.";
+      results.append(empty);
+      return;
+    }
+    filtered.forEach(item => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "language-option";
+      button.textContent = item.label;
+      button.addEventListener("click", () => {
+        const select = $("google_translate_element").querySelector("select");
+        if (!select) {
+          say("language-message", "Daftar bahasa belum siap. Coba beberapa saat lagi.");
+          return;
+        }
+        select.value = item.value;
+        select.dispatchEvent(new Event("change", { bubbles: true }));
+        $("language-search").value = "";
+        renderLanguageChoices();
+        say("language-message", "Bahasa dipilih: " + item.label);
+      });
+      results.append(button);
+    });
+  }
+
+  function readGoogleLanguages() {
+    const select = $("google_translate_element").querySelector("select");
+    if (!select || !select.options || select.options.length < 2) return false;
+    languageChoices = Array.from(select.options)
+      .filter(option => option.value && option.value !== "id")
+      .map(option => ({ value: option.value, label: option.textContent.trim() }));
+    if (!languageChoices.length) return false;
+    renderLanguageChoices($("language-search").value);
+    say("language-message", languageChoices.length + " bahasa tersedia. Ketik untuk mencari.");
+    if (languageObserver) languageObserver.disconnect();
+    return true;
+  }
 
   window.googleTranslateElementInit = function () {
     try {
@@ -566,12 +624,17 @@
         autoDisplay: false,
         layout: window.google.translate.TranslateElement.InlineLayout.SIMPLE
       }, "google_translate_element");
-      languageWidgetReady = true;
-      say("language-message", "Pilih bahasa dari daftar untuk menyesuaikan tampilan aplikasi.");
+      languageObserver = new MutationObserver(() => readGoogleLanguages());
+      languageObserver.observe($("google_translate_element"), { childList: true, subtree: true });
+      readGoogleLanguages();
     } catch (error) {
       say("language-message", "Pilihan bahasa belum dapat dimuat. Periksa koneksi lalu coba lagi.");
     }
   };
+
+  $("language-search").addEventListener("input", event => {
+    renderLanguageChoices(event.target.value);
+  });
 
   $("language-toggle").addEventListener("click", () => {
     const panel = $("language-panel");
@@ -580,13 +643,13 @@
     $("language-toggle").setAttribute("aria-expanded", String(opening));
     if (!opening || languageWidgetRequested) return;
     languageWidgetRequested = true;
-    say("language-message", "Memuat pilihan bahasa...");
+    say("language-message", "Memuat daftar bahasa...");
     const script = document.createElement("script");
     script.src = "https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit";
     script.async = true;
     script.onerror = () => {
       languageWidgetRequested = false;
-      say("language-message", "Layanan bahasa gagal dimuat. Coba tekan tombol bahasa lagi.");
+      say("language-message", "Layanan bahasa gagal dimuat. Periksa koneksi lalu coba lagi.");
     };
     document.head.appendChild(script);
   });
