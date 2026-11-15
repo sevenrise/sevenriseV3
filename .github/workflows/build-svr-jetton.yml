@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: build-svr-jetton
@@ -20,8 +20,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          persist-credentials: true
 
       - name: Set up Acton
         uses: ton-blockchain/setup-acton@0f9f436843d740466cae2d7411ff59072dde942e
@@ -48,14 +46,10 @@ jobs:
           acton check --output-format github
           acton fmt --check
 
-      - name: Commit generated Jetton source
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add ton/svr-jetton
-          if git diff --cached --quiet; then
-            echo "No generated source changes to commit."
-          else
-            git commit -m "Add tested SevenRise TON Jetton project"
-            git push
-          fi
+      - name: Upload generated Jetton source
+        uses: actions/upload-artifact@v4
+        with:
+          name: sevenrise-svr-jetton-source
+          path: ton/svr-jetton/
+          if-no-files-found: error
+          retention-days: 30
