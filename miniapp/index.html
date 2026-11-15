@@ -43,6 +43,15 @@
     .stats-row strong{display:block;color:var(--gold);font-size:22px}
     .stats-row span{display:block;color:var(--muted);font-size:11px;margin-top:5px}
     .info-card{border-style:dashed}
+    .svr-price-card{background:linear-gradient(145deg,#111923,#0b0e15);border:1px solid #263545;overflow:hidden}
+    .svr-price-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+    .svr-price-head h2{margin:0 0 5px;font-size:20px;letter-spacing:1px}
+    .svr-price-value{font-size:clamp(30px,8vw,42px);font-weight:800;letter-spacing:-1px;font-variant-numeric:tabular-nums}
+    .svr-price-tag{padding:7px 12px;border-radius:20px;background:#102c3c;border:1px solid #145477;color:#53c8ff;font-size:11px;font-weight:800;letter-spacing:1px}
+    .svr-chart-wrap{height:145px;margin:12px 0 5px}
+    .svr-chart-wrap svg{display:block;width:100%;height:100%;overflow:visible}
+    .svr-chart-foot{display:flex;justify-content:space-between;align-items:center;border-top:1px solid #26313d;padding-top:11px;color:var(--muted);font-size:11px}
+    .svr-chart-foot strong{color:#dceaf5;font-size:13px;font-variant-numeric:tabular-nums}
     .airdrop-summary{display:grid;grid-template-columns:1fr 1fr;gap:10px}
     .airdrop-summary div{background:#202020;border:1px solid #393027;border-radius:12px;padding:13px}
     .airdrop-summary strong{display:block;color:var(--gold);font-size:23px;overflow-wrap:anywhere}
@@ -124,6 +133,30 @@
         <h2>Selamat datang di SevenRise</h2>
         <p class="muted">Kumpulkan SVR Points melalui mining dan aktivitas komunitas. Pantau saldo serta perkembangan akunmu dari satu tempat.</p>
       </div>
+      <section class="card svr-price-card">
+        <div class="svr-price-head">
+          <div>
+            <p class="eyebrow">SEVENRISE TOKEN</p>
+            <h2>SVR</h2>
+            <div class="svr-price-value">$0.000359</div>
+            <p class="muted">Harga referensi</p>
+          </div>
+          <span class="svr-price-tag">SVR</span>
+        </div>
+        <div class="svr-chart-wrap" role="img" aria-label="Grafik ilustrasi harga SVR, harga referensi 0.000359 dolar">
+          <svg viewBox="0 0 640 190" preserveAspectRatio="none" aria-hidden="true">
+            <defs>
+              <linearGradient id="svr-chart-fill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#39bdf5" stop-opacity=".28"/>
+                <stop offset="100%" stop-color="#39bdf5" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <path d="M0 120 L35 132 L68 102 L102 145 L137 110 L172 92 L207 42 L242 22 L277 142 L312 160 L347 145 L382 112 L417 136 L452 90 L487 104 L522 65 L557 82 L592 48 L640 72 L640 190 L0 190 Z" fill="url(#svr-chart-fill)"/>
+            <path d="M0 120 L35 132 L68 102 L102 145 L137 110 L172 92 L207 42 L242 22 L277 142 L312 160 L347 145 L382 112 L417 136 L452 90 L487 104 L522 65 L557 82 L592 48 L640 72" fill="none" stroke="#39bdf5" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="svr-chart-foot"><span>Grafik ilustrasi</span><strong>$0.000359</strong></div>
+      </section>
       <section class="card">
         <h2>SVR Points</h2>
         <div id="balance" class="balance">0</div>
