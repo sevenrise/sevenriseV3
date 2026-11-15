@@ -498,11 +498,13 @@
     $("user-email").textContent = user.email || "SevenRise Member";
     await loadDashboard();
     await loadAirdropTasks();
+    await loadWithdrawalHistory();
     if (!tonUI) initTonConnect();
   }
 
 
-  let withdrawalQuote = null;\n  let activeWithdrawalRequestId = null;
+  let withdrawalQuote = null;
+  let activeWithdrawalRequestId = null;
 
   async function loadWithdrawalHistory() {
     const target = $("withdraw-history");
@@ -525,10 +527,10 @@
       if (activeFeeRequest) {
         instructions.hidden = false;
         instructions.textContent = "PERMINTAAN AKTIF: " + activeFeeRequest.id +
-          "\\nKirim tepat 2.000000 USDt (USDT resmi TON Mainnet) dari wallet TON yang terhubung ke SevenRise." +
-          "\\nAlamat penerima fee: " + activeFeeRequest.fee_wallet +
-          "\\nKontrak resmi USDT Jetton: " + activeFeeRequest.fee_jetton_master +
-          "\\nSetelah transaksi berhasil dan terindeks, tekan VERIFIKASI PEMBAYARAN. Jangan mengirim TON payout ke alamat ini.";
+          "\nKirim tepat 2.000000 USDt (USDT resmi TON Mainnet) dari wallet TON yang terhubung ke SevenRise." +
+          "\nAlamat penerima fee: " + activeFeeRequest.fee_wallet +
+          "\nKontrak resmi USDT Jetton: " + activeFeeRequest.fee_jetton_master +
+          "\nSetelah transaksi berhasil dan terindeks, tekan VERIFIKASI PEMBAYARAN. Jangan mengirim TON payout ke alamat ini.";
         copyButton.hidden = false;
         copyButton.dataset.address = activeFeeRequest.fee_wallet;
         verifyButton.hidden = false;
@@ -543,7 +545,7 @@
         const date = new Date(row.created_at).toLocaleString("id-ID");
         item.textContent = "ID " + row.id + " · " + date + " · " +
           format(row.points_amount) + " Points · " + Number(row.ton_amount).toFixed(4) +
-          " TON · Status: " + row.status;
+          " TON · Status: " + row.status + (row.fee_tx_hash ? " · Fee TX: " + row.fee_tx_hash : "");
         target.append(item);
       });
     } catch (error) {
