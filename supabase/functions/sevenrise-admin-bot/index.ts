@@ -166,7 +166,8 @@ Deno.serve(async (req) => {
       if (chatId) {
         if (callback.data === "dashboard") await dashboard(chatId);
         else if (callback.data === "players") await latestPlayers(chatId);
-        else if (callback.data === "withdrawals") await withdrawalRequests(chatId);\n        else if (callback.data === "search_help") {
+        else if (callback.data === "withdrawals") await withdrawalRequests(chatId);
+        else if (callback.data === "search_help") {
           await sendMenu(chatId, "🔎 Cari pemain dengan perintah:\n<code>/search username</code> atau <code>/search telegram_id</code>");
         } else await sendMenu(chatId);
       }
@@ -179,7 +180,8 @@ Deno.serve(async (req) => {
 
     if (text === "/start" || text === "/menu") await sendMenu(chatId);
     else if (text === "/dashboard") await dashboard(chatId);
-    else if (text === "/players") await latestPlayers(chatId);\n    else if (text === "/withdrawals") await withdrawalRequests(chatId);\n    else if (text === "/withdrawals") await withdrawalRequests(chatId);
+    else if (text === "/players") await latestPlayers(chatId);
+    else if (text === "/withdrawals") await withdrawalRequests(chatId);\n    else if (text === "/withdrawals") await withdrawalRequests(chatId);
     else if (text.startsWith("/search")) await searchPlayer(chatId, text.replace(/^\/search\s*/i, ""));
     else await sendMenu(chatId, "Perintah tersedia: /menu, /dashboard, /players, /withdrawals, /search nama_atau_id");
   } catch (error) {
