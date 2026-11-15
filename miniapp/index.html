@@ -125,8 +125,9 @@
       <section class="card">
         <h2>Status Mining</h2>
         <div id="timer" class="timer">24:00:00</div>
-        <p id="mining-status" class="muted">Mining belum aktif.</p>
-        <button id="start-mining">MULAI MINING</button>
+        <p id="mining-status" class="muted">Status mining belum dimuat.</p>
+        <button id="refresh-mining-status" class="secondary" type="button">PERBARUI STATUS MINING</button>
+        <button id="start-mining" disabled>MEMUAT STATUS...</button>
         <button id="claim-mining" class="secondary" disabled>KLAIM REWARD</button>
         <p id="mining-message" class="message"></p>
       </section>
@@ -498,11 +499,39 @@
     $("dashboard").hidden = !user;
     $("bottom-nav").hidden = !user;
     if (!user) return;
+
+    // Tampilkan aplikasi segera. Mining tidak boleh menunggu Airdrop,
+    // riwayat penarikan, atau inisialisasi wallet.
     $("user-email").textContent = user.email || "SevenRise Member";
-    await loadDashboard();
-    await loadAirdropTasks();
-    await loadWithdrawalHistory();
-    if (!tonUI) initTonConnect();
+    $("mining-status").textContent = "Memuat status mining...";
+    $("start-mining").disabled = true;
+    $("start-mining").textContent = "MEMUAT STATUS...";
+
+    loadDashboard().catch(error => {
+      console.error("SevenRise mining/dashboard load failed:", error);
+      $("mining-status").textContent =
+        "Status mining belum berhasil dimuat. Tekan PERBARUI STATUS MINING untuk mencoba lagi.";
+      $("start-mining").disabled = true;
+      $("start-mining").textContent = "STATUS BELUM TERSEDIA";
+      say("mining-message", error.message || "Gagal mengambil status mining.");
+    });
+
+    // Fitur tambahan dimuat terpisah agar kegagalannya tidak memblokir Mining.
+    loadAirdropTasks().catch(error => {
+      console.error("Airdrop load failed:", error);
+      say("airdrop-message", "Daftar Airdrop belum tersedia. Coba muat ulang nanti.");
+    });
+    loadWithdrawalHistory().catch(error => {
+      console.error("Withdrawal history load failed:", error);
+      $("withdraw-history").textContent = "Riwayat penarikan belum tersedia.";
+    });
+    if (!tonUI) {
+      try { initTonConnect(); }
+      catch (error) {
+        console.error("TON Connect initialization failed:", error);
+        say("wallet-status", "TON Connect belum tersedia. Coba muat ulang halaman.");
+      }
+    }
   }
 
 
@@ -722,6 +751,28 @@
     $("auth").hidden = false;
   });
 
+  $("refresh-mining-status").addEventListener("click", async () => {
+    if (!user) return say("mining-message", "Silakan login kembali.");
+    const button = $("refresh-mining-status");
+    button.disabled = true;
+    $("start-mining").disabled = true;
+    $("start-mining").textContent = "MEMUAT STATUS...";
+    say("mining-message", "Memeriksa status mining dari server...");
+    try {
+      await loadDashboard();
+      say("mining-message", "Status mining berhasil diperbarui.");
+    } catch (error) {
+      console.error("Manual mining refresh failed:", error);
+      $("mining-status").textContent =
+        "Belum dapat mengambil status mining. Periksa koneksi lalu coba lagi.";
+      $("start-mining").disabled = true;
+      $("start-mining").textContent = "STATUS BELUM TERSEDIA";
+      say("mining-message", error.message || "Gagal memperbarui status mining.");
+    } finally {
+      button.disabled = false;
+    }
+  });
+
   $("start-mining").addEventListener("click", async () => {
     $("start-mining").disabled = true;
     say("mining-message", "Memulai mining...");
@@ -778,6 +829,7 @@
       user = null;
       stopTimer();
       $("dashboard").hidden = true;
+      $("bottom-nav").hidden = true;
       $("auth").hidden = false;
     }
   });
