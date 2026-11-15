@@ -1,0 +1,15 @@
+{
+  "project": "SevenRise",
+  "name": "SevenRise",
+  "symbol": "SVR",
+  "network": "ton-mainnet",
+  "decimals": 9,
+  "initial_supply": "100000000",
+  "initial_supply_base_units": "100000000000000000",
+  "recipient_wallet": "UQAuXqWR5T-qdb2eXueyXEq-S1sBpuCLe6ukpqzKm9eLCQiJ",
+  "metadata_uri": "https://sevenrise.github.io/sevenriseV3/ton/jetton-metadata.json",
+  "logo_source": "https://sevenrise.github.io/sevenriseV3/ton/svr-logo.svg",
+  "minter": "https://dyor.io/minter",
+  "dex_target": "https://app.ston.fi/pools",
+  "deployment_requires_wallet_signature": true
+}
