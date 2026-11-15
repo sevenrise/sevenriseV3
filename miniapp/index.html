@@ -67,7 +67,7 @@
     .withdrawal-result{overflow-wrap:anywhere;background:#202020;border:1px solid #59451c;border-radius:10px;padding:12px;margin-top:10px;font-size:12px;line-height:1.6}
     .withdrawal-row{padding:13px 0;border-bottom:1px solid #393027;font-size:12px;line-height:1.6}
     .withdrawal-row:last-child{border-bottom:0}
-\n    .bottom-nav{position:fixed;z-index:10;left:0;right:0;bottom:0;display:flex;justify-content:space-around;gap:2px;padding:8px 5px calc(8px + env(safe-area-inset-bottom));background:rgba(10,10,10,.97);border-top:1px solid #4b3b1c;backdrop-filter:blur(12px)}
+    .bottom-nav{position:fixed;z-index:10;left:0;right:0;bottom:0;display:flex;justify-content:space-around;gap:2px;padding:8px 5px calc(8px + env(safe-area-inset-bottom));background:rgba(10,10,10,.97);border-top:1px solid #4b3b1c;backdrop-filter:blur(12px)}
     .nav-item{width:auto;flex:1;margin:0;padding:7px 2px;background:transparent;color:#999;border-radius:9px;font-size:10px;font-weight:600}
     .nav-item span{display:block;font-size:19px;line-height:23px;margin-bottom:3px}
     .nav-item.active{background:#241d0e;color:var(--gold)}
@@ -663,7 +663,7 @@
     }
   });
 
-\n  $("login").addEventListener("click", async () => {
+  $("login").addEventListener("click", async () => {
     const email = $("email").value.trim();
     const password = $("password").value;
     if (!email || !password) return say("auth-message", "Masukkan email dan password.");
