@@ -1,0 +1,61 @@
+name: Build SevenRise TON Jetton
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/build-svr-jetton.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-svr-jetton
+  cancel-in-progress: false
+
+jobs:
+  scaffold-build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Set up Acton
+        uses: ton-blockchain/setup-acton@0f9f436843d740466cae2d7411ff59072dde942e
+        with:
+          version: "1.2.1"
+
+      - name: Generate official Jetton project template
+        run: |
+          if [ ! -f ton/svr-jetton/Acton.toml ]; then
+            acton new ton/svr-jetton --template jetton --agents --name SevenRise --description "SevenRise SVR Jetton"
+          fi
+
+      - name: Build contracts
+        working-directory: ton/svr-jetton
+        run: acton build
+
+      - name: Run contract tests
+        working-directory: ton/svr-jetton
+        run: acton test
+
+      - name: Run static checks
+        working-directory: ton/svr-jetton
+        run: |
+          acton check --output-format github
+          acton fmt --check
+
+      - name: Commit generated Jetton source
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add ton/svr-jetton
+          if git diff --cached --quiet; then
+            echo "No generated source changes to commit."
+          else
+            git commit -m "Add tested SevenRise TON Jetton project"
+            git push
+          fi
