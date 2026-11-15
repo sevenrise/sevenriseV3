@@ -76,6 +76,21 @@ async function supabasePatch(path: string, body: Record<string, unknown>) {
   return await response.json();
 }
 
+async function supabaseRpc(name: string, args: Record<string, unknown>) {
+  const { url, key } = supabaseConfig();
+  const response = await fetch(`${url}/rest/v1/rpc/${name}`, {
+    method: "POST",
+    headers: { apikey: key, authorization: `Bearer ${key}`, "content-type": "application/json" },
+    body: JSON.stringify(args),
+  });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    console.error("Supabase RPC failed:", response.status, body);
+    throw new Error(String(body?.message || "Penyelesaian payout gagal."));
+  }
+  return body;
+}
+
 async function sendMenu(chatId: number, message = "🔐 <b>SevenRise Admin Control</b>\nPilih menu:") {
   return telegram("sendMessage", {
     chat_id: chatId, text: message, parse_mode: "HTML",
@@ -199,12 +214,13 @@ async function markWithdrawalPaid(chatId: number, requestId: string, txHash: str
   });
   if (!match) return sendMenu(chatId, "Hash belum terbukti mengirim jumlah TON yang tepat dari treasury ke wallet penerima. Status tetap approved.");
 
-  const rows = await supabasePatch(
-    `svr_withdrawal_requests?id=eq.${requestId}&status=eq.approved&payout_tx_hash=is.null`,
-    { status: "paid", payout_tx_hash: txHash.toLowerCase(), paid_at: new Date().toISOString(), updated_at: new Date().toISOString() },
-  );
-  if (!Array.isArray(rows) || !rows.length) return sendMenu(chatId, "Transaksi terverifikasi, tetapi status database berubah. Periksa permintaan secara manual.");
-  return sendMenu(chatId, "✅ Pembayaran TON terverifikasi di blockchain dan status permintaan menjadi PAID.");
+  const finalized = await supabaseRpc("svr_finalize_withdrawal_payout", {
+    input_request_id: requestId,
+    input_tx_hash: txHash.toLowerCase(),
+  });
+  if (!finalized || finalized.success !== true) return sendMenu(chatId, "Transaksi terverifikasi tetapi penyelesaian database belum berhasil. Periksa permintaan secara manual.");
+  return sendMenu(chatId, "✅ Pembayaran TON terverifikasi di blockchain. Status PAID dan " +
+    escapeHtml(finalized.points_debited) + " SVR Points telah dipotong secara atomik.");
 }
 
 Deno.serve(async (req: Request) => {
