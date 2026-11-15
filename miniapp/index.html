@@ -203,12 +203,15 @@
         <div id="withdraw-quote-result" class="withdrawal-result" hidden></div>
         <button id="withdraw-submit" disabled>BUAT PERMINTAAN PENARIKAN</button>
         <p id="withdraw-message" class="message" aria-live="polite"></p>
+        <div id="withdraw-payment-instructions" class="withdrawal-result" hidden style="white-space:pre-wrap"></div>
+        <button id="withdraw-copy-fee-wallet" class="secondary" hidden>SALIN ALAMAT FEE</button>
+        <button id="withdraw-verify-fee" hidden>VERIFIKASI PEMBAYARAN 2 USDT</button>
       </section>
       <section class="card">
         <h2>Ketentuan biaya</h2>
         <div class="withdrawal-note">
-          Biaya verifikasi adalah 2 USDT resmi (Tether Jetton) di TON Mainnet dan dibayar terpisah, bukan dipotong dari payout 3 TON.
-          <br><br><strong>Jangan kirim USDT dulu.</strong> Verifikasi transaksi on-chain dan alur pembayaran belum diaktifkan. Permintaan saat ini hanya dapat dibuat dan dicatat; pembayaran fee maupun payout belum tersedia.
+          Biaya verifikasi adalah 2 USDT resmi (Tether Jetton) di TON Mainnet dan dibayar terpisah, bukan dipotong dari payout 3 TON. Instruksi pembayaran hanya muncul setelah permintaan penarikan berhasil dibuat.
+          <br><br>Gunakan wallet TON yang sama dengan wallet SevenRise yang terhubung. Server akan memeriksa nominal, pengirim, penerima, kontrak Jetton resmi, dan transaksi langsung melalui data blockchain TON Center. Jangan kirim ke alamat selain yang ditampilkan pada permintaan aktif.
         </div>
       </section>
       <section class="card">
@@ -499,20 +502,40 @@
   }
 
 
-  let withdrawalQuote = null;
+  let withdrawalQuote = null;\n  let activeWithdrawalRequestId = null;
 
   async function loadWithdrawalHistory() {
     const target = $("withdraw-history");
     target.textContent = "Memuat riwayat...";
     try {
       const { data, error } = await db.from("svr_withdrawal_requests")
-        .select("id,points_amount,usdt_value,ton_amount,status,created_at")
+        .select("id,points_amount,usdt_value,ton_amount,status,created_at,fee_wallet,fee_jetton_master,fee_tx_hash")
         .order("created_at", { ascending: false }).limit(10);
       if (error) throw error;
       target.innerHTML = "";
       if (!data || !data.length) {
         target.textContent = "Belum ada permintaan penarikan.";
         return;
+      }
+      const activeFeeRequest = data.find(row => row.status === "pending_fee");
+      activeWithdrawalRequestId = activeFeeRequest ? activeFeeRequest.id : null;
+      const instructions = $("withdraw-payment-instructions");
+      const copyButton = $("withdraw-copy-fee-wallet");
+      const verifyButton = $("withdraw-verify-fee");
+      if (activeFeeRequest) {
+        instructions.hidden = false;
+        instructions.textContent = "PERMINTAAN AKTIF: " + activeFeeRequest.id +
+          "\\nKirim tepat 2.000000 USDt (USDT resmi TON Mainnet) dari wallet TON yang terhubung ke SevenRise." +
+          "\\nAlamat penerima fee: " + activeFeeRequest.fee_wallet +
+          "\\nKontrak resmi USDT Jetton: " + activeFeeRequest.fee_jetton_master +
+          "\\nSetelah transaksi berhasil dan terindeks, tekan VERIFIKASI PEMBAYARAN. Jangan mengirim TON payout ke alamat ini.";
+        copyButton.hidden = false;
+        copyButton.dataset.address = activeFeeRequest.fee_wallet;
+        verifyButton.hidden = false;
+      } else {
+        instructions.hidden = true;
+        copyButton.hidden = true;
+        verifyButton.hidden = true;
       }
       data.forEach(row => {
         const item = document.createElement("div");
@@ -564,6 +587,39 @@
     }
   });
 
+  $("withdraw-copy-fee-wallet").addEventListener("click", async () => {
+    const address = $("withdraw-copy-fee-wallet").dataset.address || "";
+    if (!address) return;
+    try {
+      await navigator.clipboard.writeText(address);
+      say("withdraw-message", "Alamat fee berhasil disalin.");
+    } catch {
+      say("withdraw-message", "Salin alamat wallet dari instruksi pembayaran secara manual.");
+    }
+  });
+
+  $("withdraw-verify-fee").addEventListener("click", async () => {
+    if (!activeWithdrawalRequestId) return say("withdraw-message", "Tidak ada permintaan fee yang menunggu.");
+    $("withdraw-verify-fee").disabled = true;
+    say("withdraw-message", "Memeriksa transaksi USDT langsung di TON Mainnet...");
+    try {
+      const { data, error } = await db.functions.invoke("sevenrise-verify-withdrawal-fee", {
+        body: { request_id: activeWithdrawalRequestId }
+      });
+      if (error) throw error;
+      if (!data || data.success !== true) {
+        say("withdraw-message", data?.message || data?.error || "Pembayaran belum ditemukan. Tunggu transaksi terindeks lalu coba lagi.");
+        return;
+      }
+      say("withdraw-message", data.message || "Fee berhasil diverifikasi. Menunggu persetujuan Super Admin.");
+      await loadWithdrawalHistory();
+    } catch (error) {
+      say("withdraw-message", "Verifikasi belum berhasil: " + error.message);
+    } finally {
+      $("withdraw-verify-fee").disabled = false;
+    }
+  });
+
   $("withdraw-points").addEventListener("input", () => {
     withdrawalQuote = null;
     $("withdraw-submit").disabled = true;
@@ -586,8 +642,11 @@
       if (error) throw error;
       const result = Array.isArray(data) ? data[0] : data;
       if (!result || result.success !== true) throw new Error(result?.message || "Permintaan tidak berhasil dibuat.");
-      say("withdraw-message", "Permintaan berhasil dicatat dengan status " + result.status +
-        ". Poin sedang dikunci. Jangan kirim fee USDT sampai instruksi pembayaran resmi tersedia.");
+      activeWithdrawalRequestId = result.request_id;
+      say("withdraw-message", "Permintaan berhasil dibuat. Ikuti instruksi fee yang tampil di bawah dan bayar hanya satu kali.");
+      $("withdraw-payment-instructions").hidden = false;
+      $("withdraw-copy-fee-wallet").hidden = false;
+      $("withdraw-verify-fee").hidden = false;
       $("withdraw-points").value = "";
       withdrawalQuote = null;
       $("withdraw-quote-result").hidden = true;
