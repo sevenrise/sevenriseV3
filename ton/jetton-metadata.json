@@ -2,5 +2,6 @@
   "name": "SevenRise",
   "symbol": "SVR",
   "description": "SevenRise (SVR) — official fungible token on The Open Network.",
-  "decimals": "9"
+  "decimals": "9",
+  "image": "https://sevenrise.github.io/sevenriseV3/ton/svr-logo.svg"
 }
