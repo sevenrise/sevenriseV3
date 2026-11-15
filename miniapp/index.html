@@ -73,6 +73,15 @@
     .nav-item.active{background:#241d0e;color:var(--gold)}
     body{padding-bottom:calc(78px + env(safe-area-inset-bottom))}
     @media(min-width:560px){.bottom-nav{left:50%;right:auto;transform:translateX(-50%);width:560px;border-left:1px solid #4b3b1c;border-right:1px solid #4b3b1c;border-radius:14px 14px 0 0}}
+    .language-tools{display:flex;justify-content:flex-end;align-items:center;gap:8px;margin:-7px 0 12px}
+    .language-toggle{width:auto;margin:0;padding:7px 11px;background:#171717;color:var(--gold);border:1px solid var(--line);border-radius:20px;font-size:11px;font-weight:700}
+    .language-panel{background:#151515;border:1px solid var(--line);border-radius:12px;padding:10px;margin:0 0 12px}
+    .language-panel[hidden]{display:none!important}
+    #google_translate_element{min-height:30px}
+    #google_translate_element .goog-te-gadget{color:#aaa;font-size:11px}
+    #google_translate_element select{display:block;width:100%;max-width:100%;padding:9px;margin:4px 0;background:#222;color:#fff;border:1px solid #59451c;border-radius:8px;font-size:13px}
+    .goog-te-banner-frame{display:none!important}
+    body{top:0!important}
   </style>
 </head>
 <body>
@@ -80,6 +89,14 @@
   <header class="card">
     <h1>SevenRise</h1>
   </header>
+  <div class="language-tools">
+    <button id="language-toggle" class="language-toggle" type="button" aria-expanded="false">🌐 Bahasa / Language</button>
+  </div>
+  <section id="language-panel" class="language-panel" hidden>
+    <p class="muted" style="margin:0 0 7px">Pilih bahasa tampilan. Terjemahan disediakan oleh Google Translate.</p>
+    <div id="google_translate_element"></div>
+    <p id="language-message" class="muted" style="margin:6px 0 0">Memuat pilihan bahasa saat panel dibuka...</p>
+  </section>
 
   <section id="auth" class="card">
     <h2>Login SevenRise</h2>
@@ -534,6 +551,45 @@
     }
   }
 
+
+  // Language selector: Google Translate exposes its supported language list.
+  let languageWidgetRequested = false;
+  let languageWidgetReady = false;
+
+  window.googleTranslateElementInit = function () {
+    try {
+      if (!window.google || !window.google.translate || !window.google.translate.TranslateElement) {
+        throw new Error("Layanan terjemahan belum tersedia.");
+      }
+      new window.google.translate.TranslateElement({
+        pageLanguage: "id",
+        autoDisplay: false,
+        layout: window.google.translate.TranslateElement.InlineLayout.SIMPLE
+      }, "google_translate_element");
+      languageWidgetReady = true;
+      say("language-message", "Pilih bahasa dari daftar untuk menyesuaikan tampilan aplikasi.");
+    } catch (error) {
+      say("language-message", "Pilihan bahasa belum dapat dimuat. Periksa koneksi lalu coba lagi.");
+    }
+  };
+
+  $("language-toggle").addEventListener("click", () => {
+    const panel = $("language-panel");
+    const opening = panel.hidden;
+    panel.hidden = !opening;
+    $("language-toggle").setAttribute("aria-expanded", String(opening));
+    if (!opening || languageWidgetRequested) return;
+    languageWidgetRequested = true;
+    say("language-message", "Memuat pilihan bahasa...");
+    const script = document.createElement("script");
+    script.src = "https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit";
+    script.async = true;
+    script.onerror = () => {
+      languageWidgetRequested = false;
+      say("language-message", "Layanan bahasa gagal dimuat. Coba tekan tombol bahasa lagi.");
+    };
+    document.head.appendChild(script);
+  });
 
   let withdrawalQuote = null;
   let activeWithdrawalRequestId = null;
