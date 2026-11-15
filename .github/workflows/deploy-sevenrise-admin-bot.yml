@@ -7,6 +7,7 @@ on:
     paths:
       - "supabase/functions/sevenrise-admin-bot/**"
       - "supabase/functions/sevenrise-withdrawal-quote/**"
+      - "supabase/functions/sevenrise-verify-withdrawal-fee/**"
       - ".github/workflows/deploy-sevenrise-admin-bot.yml"
 
 permissions:
@@ -33,6 +34,7 @@ jobs:
           test -n "$SUPABASE_PROJECT_REF" || (echo "Missing SUPABASE_PROJECT_REF GitHub secret" && exit 1)
           supabase functions deploy sevenrise-admin-bot --project-ref "$SUPABASE_PROJECT_REF" --no-verify-jwt --yes
           supabase functions deploy sevenrise-withdrawal-quote --project-ref "$SUPABASE_PROJECT_REF" --no-verify-jwt --yes
+          supabase functions deploy sevenrise-verify-withdrawal-fee --project-ref "$SUPABASE_PROJECT_REF" --no-verify-jwt --yes
 
       - name: Configure admin bot secrets
         env:
