@@ -1,0 +1,66 @@
+name: SevenRise TON Deployment Preflight
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "ton/deployment-config.json"
+      - "ton/jetton-metadata.json"
+      - "ton/preflight.py"
+      - "ton/DYOR-MINTER-DEPLOYMENT.md"
+      - "ton/svr-logo.svg"
+      - ".github/workflows/svr-deployment-preflight.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: svr-deployment-preflight
+  cancel-in-progress: false
+
+jobs:
+  validate-and-package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate canonical deployment settings
+        run: python3 ton/preflight.py
+
+      - name: Assemble user approval package
+        run: |
+          mkdir -p dist/sevenrise-svr-deployment
+          cp ton/deployment-config.json dist/sevenrise-svr-deployment/
+          cp ton/jetton-metadata.json dist/sevenrise-svr-deployment/
+          cp ton/svr-logo.svg dist/sevenrise-svr-deployment/
+          cp ton/DYOR-MINTER-DEPLOYMENT.md dist/sevenrise-svr-deployment/
+          cp ton/DEPLOYMENT.md dist/sevenrise-svr-deployment/
+          cp ton/preflight.py dist/sevenrise-svr-deployment/
+          cat > dist/sevenrise-svr-deployment/README.txt <<'EOF'
+SevenRise SVR — TON Mainnet deployment preparation package
+
+This package contains public configuration and instructions only.
+It does NOT contain wallet secrets and cannot sign or broadcast a transaction.
+
+Before approving anything in Tonkeeper:
+- Confirm TON Mainnet.
+- Confirm the connected wallet matches deployment-config.json.
+- Confirm token name, symbol, decimals and initial supply.
+- Review the exact fee and transaction destination shown by DYOR Minter.
+- Stop if any value differs.
+
+The token is not deployed until the user approves the transaction and it is
+confirmed on-chain. A DEX market requires a separately funded liquidity pool.
+DYOR Minter may require a PNG/JPG logo upload; the repository currently
+publishes the SVG source logo, so upload a compliant raster image if requested.
+EOF
+
+      - name: Upload deployment preparation package
+        uses: actions/upload-artifact@v4
+        with:
+          name: sevenrise-svr-deployment-preflight
+          path: dist/sevenrise-svr-deployment/
+          if-no-files-found: error
+          retention-days: 30
