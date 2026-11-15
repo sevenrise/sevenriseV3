@@ -26,7 +26,7 @@ jobs:
       - name: Install Supabase CLI
         uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 2.53.1
 
       - name: Validate required GitHub secrets
         env:
