@@ -108,3 +108,7 @@ $$;
 
 revoke all on function public.svr_create_withdrawal_request(uuid,bigint) from public, anon;
 grant execute on function public.svr_create_withdrawal_request(uuid,bigint) to authenticated;
+
+create unique index if not exists svr_withdrawal_payout_tx_hash_unique
+  on public.svr_withdrawal_requests (payout_tx_hash)
+  where payout_tx_hash is not null;
