@@ -105,6 +105,20 @@ async function latestPlayers(chatId: number) {
   return sendMenu(chatId, "👥 <b>PEMAIN TERBARU</b>\n\n" + lines.join("\n\n"));
 }
 
+
+async function withdrawalRequests(chatId: number) {
+  const { data } = await supabaseGet(
+    "svr_withdrawal_requests?select=id,user_id,points_amount,usdt_value,ton_amount,wallet_address,status,created_at&order=created_at.desc&limit=10",
+  );
+  if (!Array.isArray(data) || data.length === 0) {
+    return sendMenu(chatId, "💸 <b>PERMINTAAN PENARIKAN</b>\\n\\nBelum ada permintaan atau tabel belum tersedia. Terapkan migrasi database terlebih dahulu.");
+  }
+  const lines = data.map((r: Record<string, unknown>, i: number) =>
+    `${i + 1}. <b>${escapeHtml(r.status)}</b> · ${escapeHtml(r.points_amount)} Points\\n   Estimasi: ${escapeHtml(Number(r.ton_amount || 0).toFixed(4))} TON / ${escapeHtml(Number(r.usdt_value || 0).toFixed(4))} USDT\\n   Wallet: <code>${escapeHtml(r.wallet_address)}</code>\\n   Request: <code>${escapeHtml(r.id)}</code>`
+  );
+  return sendMenu(chatId, "💸 <b>10 PERMINTAAN PENARIKAN TERBARU</b>\\n\\n" + lines.join("\\n\\n") + "\\n\\n<i>Mode hanya baca. Fee harus diverifikasi on-chain sebelum approval atau payout.</i>");
+}
+
 async function searchPlayer(chatId: number, term: string) {
   const safe = term.replace(/[,%()]/g, " ").trim().slice(0, 60);
   if (!safe) return sendMenu(chatId, "Format: <code>/search kata_nama_atau_id</code>");
@@ -151,7 +165,7 @@ Deno.serve(async (req) => {
       if (chatId) {
         if (callback.data === "dashboard") await dashboard(chatId);
         else if (callback.data === "players") await latestPlayers(chatId);
-        else if (callback.data === "search_help") {
+        else if (callback.data === "withdrawals") await withdrawalRequests(chatId);\n        else if (callback.data === "search_help") {
           await sendMenu(chatId, "🔎 Cari pemain dengan perintah:\n<code>/search username</code> atau <code>/search telegram_id</code>");
         } else await sendMenu(chatId);
       }
@@ -164,9 +178,9 @@ Deno.serve(async (req) => {
 
     if (text === "/start" || text === "/menu") await sendMenu(chatId);
     else if (text === "/dashboard") await dashboard(chatId);
-    else if (text === "/players") await latestPlayers(chatId);
+    else if (text === "/players") await latestPlayers(chatId);\n    else if (text === "/withdrawals") await withdrawalRequests(chatId);
     else if (text.startsWith("/search")) await searchPlayer(chatId, text.replace(/^\/search\s*/i, ""));
-    else await sendMenu(chatId, "Perintah tersedia: /menu, /dashboard, /players, /search nama_atau_id");
+    else await sendMenu(chatId, "Perintah tersedia: /menu, /dashboard, /players, /withdrawals, /search nama_atau_id");
   } catch (error) {
     console.error("SevenRise admin bot error:", error);
     // Avoid exposing internal details to Telegram users.
