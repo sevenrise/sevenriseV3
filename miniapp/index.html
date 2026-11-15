@@ -62,7 +62,12 @@
     .airdrop-summary div{background:linear-gradient(145deg,#28200f,#171717);border:1px solid #59451c;box-shadow:inset 0 1px rgba(255,255,255,.025)}
     .airdrop-summary strong{font-variant-numeric:tabular-nums}
     .airdrop-intro-glow{background:radial-gradient(ellipse at top right,rgba(229,185,77,.14),transparent 58%),linear-gradient(145deg,#211a0b,#151515 70%)}
-    .bottom-nav{position:fixed;z-index:10;left:0;right:0;bottom:0;display:flex;justify-content:space-around;gap:2px;padding:8px 5px calc(8px + env(safe-area-inset-bottom));background:rgba(10,10,10,.97);border-top:1px solid #4b3b1c;backdrop-filter:blur(12px)}
+
+    .withdrawal-note{background:#211b0e;border:1px solid #70551f;border-radius:12px;padding:13px;color:#e9d39b;font-size:12px;line-height:1.6}
+    .withdrawal-result{overflow-wrap:anywhere;background:#202020;border:1px solid #59451c;border-radius:10px;padding:12px;margin-top:10px;font-size:12px;line-height:1.6}
+    .withdrawal-row{padding:13px 0;border-bottom:1px solid #393027;font-size:12px;line-height:1.6}
+    .withdrawal-row:last-child{border-bottom:0}
+\n    .bottom-nav{position:fixed;z-index:10;left:0;right:0;bottom:0;display:flex;justify-content:space-around;gap:2px;padding:8px 5px calc(8px + env(safe-area-inset-bottom));background:rgba(10,10,10,.97);border-top:1px solid #4b3b1c;backdrop-filter:blur(12px)}
     .nav-item{width:auto;flex:1;margin:0;padding:7px 2px;background:transparent;color:#999;border-radius:9px;font-size:10px;font-weight:600}
     .nav-item span{display:block;font-size:19px;line-height:23px;margin-bottom:3px}
     .nav-item.active{background:#241d0e;color:var(--gold)}
@@ -105,7 +110,7 @@
         <div class="quick-grid">
           <button class="quick-action" data-goto="mining">⛏ Mining<span>Mulai kumpulkan poin</span></button>
           <button class="quick-action" data-goto="referral">♧ Referral<span>Ajak teman bergabung</span></button>
-          <button class="quick-action" data-goto="wallet">◈ Wallet<span>Hubungkan TON Wallet</span></button>
+          <button class="quick-action" data-goto="wallet">◈ Wallet<span>Hubungkan TON Wallet</span></button>\n          <button class="quick-action" data-goto="withdrawal">⇧ Penarikan<span>Ajukan penarikan SVR</span></button>
         </div>
       </section>
     </section>
@@ -181,6 +186,37 @@
       </section>
     </section>
 
+
+    <section class="page-view" data-view="withdrawal">
+      <section class="card page-intro">
+        <p class="eyebrow">SEVENRISE WITHDRAWAL</p>
+        <h2>⇧ Penarikan SVR Points</h2>
+        <p class="muted">Konversi poin ke nilai USDT dan estimasi pembayaran TON Mainnet berdasarkan kuotasi pasar terbaru.</p>
+      </section>
+      <section class="card">
+        <h2>Saldo tersedia</h2>
+        <div id="withdraw-balance" class="balance">0</div>
+        <p class="muted">100.000 SVR Points = 1 USDT. Minimum payout 3 TON sebelum biaya.</p>
+        <label for="withdraw-points" class="muted">Jumlah SVR Points yang ingin ditarik</label>
+        <input id="withdraw-points" type="number" min="1" step="1" inputmode="numeric" placeholder="Contoh: 500000">
+        <button id="withdraw-quote">CEK KURS & MINIMUM</button>
+        <div id="withdraw-quote-result" class="withdrawal-result" hidden></div>
+        <button id="withdraw-submit" disabled>BUAT PERMINTAAN PENARIKAN</button>
+        <p id="withdraw-message" class="message" aria-live="polite"></p>
+      </section>
+      <section class="card">
+        <h2>Ketentuan biaya</h2>
+        <div class="withdrawal-note">
+          Biaya verifikasi adalah 2 USDT resmi (Tether Jetton) di TON Mainnet dan dibayar terpisah, bukan dipotong dari payout 3 TON.
+          <br><br><strong>Jangan kirim USDT dulu.</strong> Verifikasi transaksi on-chain dan alur pembayaran belum diaktifkan. Permintaan saat ini hanya dapat dibuat dan dicatat; pembayaran fee maupun payout belum tersedia.
+        </div>
+      </section>
+      <section class="card">
+        <h2>Riwayat permintaan</h2>
+        <div id="withdraw-history" class="muted">Belum ada data.</div>
+      </section>
+    </section>
+
     <section class="page-view" data-view="wallet">
       <section class="card page-intro">
         <p class="eyebrow">TON CONNECT</p>
@@ -214,7 +250,7 @@
     <button class="nav-item" data-goto="mining"><span>⛏</span>Mining</button>
     <button class="nav-item" data-goto="referral"><span>♧</span>Referral</button>
     <button class="nav-item" data-goto="airdrop"><span>🎁</span>Airdrop</button>
-    <button class="nav-item" data-goto="wallet"><span>◈</span>Wallet</button>
+    <button class="nav-item" data-goto="withdrawal"><span>⇧</span>Tarik</button>\n    <button class="nav-item" data-goto="wallet"><span>◈</span>Wallet</button>
     <button class="nav-item" data-goto="profile"><span>☻</span>Profil</button>
   </nav>
 
@@ -425,7 +461,7 @@
     const d = Array.isArray(data) ? data[0] : data;
     if (!d) throw new Error("Data dashboard kosong.");
 
-    $("balance").textContent = format(d.balance);
+    $("balance").textContent = format(d.balance);\n    if ($("withdraw-balance")) $("withdraw-balance").textContent = format(d.balance);
     $("referral-code").textContent = d.referral_code || "Tidak tersedia";
     $("referral-count").textContent = format(d.referral_count);
     $("referral-earnings").textContent = format(d.referral_earnings);
@@ -462,7 +498,108 @@
     if (!tonUI) initTonConnect();
   }
 
-  $("login").addEventListener("click", async () => {
+
+  let withdrawalQuote = null;
+
+  async function loadWithdrawalHistory() {
+    const target = $("withdraw-history");
+    target.textContent = "Memuat riwayat...";
+    try {
+      const { data, error } = await db.from("svr_withdrawal_requests")
+        .select("id,points_amount,usdt_value,ton_amount,status,created_at")
+        .order("created_at", { ascending: false }).limit(10);
+      if (error) throw error;
+      target.innerHTML = "";
+      if (!data || !data.length) {
+        target.textContent = "Belum ada permintaan penarikan.";
+        return;
+      }
+      data.forEach(row => {
+        const item = document.createElement("div");
+        item.className = "withdrawal-row";
+        const date = new Date(row.created_at).toLocaleString("id-ID");
+        item.textContent = "ID " + row.id + " · " + date + " · " +
+          format(row.points_amount) + " Points · " + Number(row.ton_amount).toFixed(4) +
+          " TON · Status: " + row.status;
+        target.append(item);
+      });
+    } catch (error) {
+      target.textContent = "Riwayat belum tersedia. Pastikan migrasi database sudah diterapkan.";
+    }
+  }
+
+  $("withdraw-quote").addEventListener("click", async () => {
+    const points = Number($("withdraw-points").value);
+    if (!Number.isSafeInteger(points) || points <= 0) {
+      return say("withdraw-message", "Masukkan jumlah SVR Points yang valid.");
+    }
+    $("withdraw-quote").disabled = true;
+    $("withdraw-submit").disabled = true;
+    say("withdraw-message", "Mengambil kurs TON terbaru...");
+    try {
+      const { data, error } = await db.functions.invoke("sevenrise-withdrawal-quote", { body: {} });
+      if (error) throw error;
+      if (!data || !data.quote_id) throw new Error(data?.error || "Kuotasi tidak tersedia.");
+      withdrawalQuote = data;
+      const usdt = points / 100000;
+      const ton = usdt / Number(data.ton_usd);
+      const minimum = Number(data.points_per_ton_minimum);
+      $("withdraw-quote-result").hidden = false;
+      $("withdraw-quote-result").textContent =
+        "Kurs referensi: 1 TON ≈ $" + Number(data.ton_usd).toFixed(4) +
+        " USDT · Nilai poin: " + usdt.toFixed(4) + " USDT · Estimasi payout: " +
+        ton.toFixed(4) + " TON · Minimum saat ini: " + format(minimum) +
+        " SVR Points · Kuotasi berlaku sampai " + new Date(data.expires_at).toLocaleTimeString("id-ID") +
+        ". Fee terpisah: 2 USDT.";
+      $("withdraw-submit").disabled = points < minimum;
+      say("withdraw-message", points < minimum
+        ? "Jumlah poin belum mencapai minimum 3 TON."
+        : "Kurs berhasil dihitung. Periksa kembali nominal sebelum membuat permintaan.");
+    } catch (error) {
+      withdrawalQuote = null;
+      say("withdraw-message", "Gagal mengambil kurs: " + error.message +
+        ". Pastikan Edge Function dan migrasi database sudah dipasang.");
+    } finally {
+      $("withdraw-quote").disabled = false;
+    }
+  });
+
+  $("withdraw-points").addEventListener("input", () => {
+    withdrawalQuote = null;
+    $("withdraw-submit").disabled = true;
+    $("withdraw-quote-result").hidden = true;
+    say("withdraw-message", "Cek kurs lagi setelah mengubah jumlah poin.");
+  });
+
+  $("withdraw-submit").addEventListener("click", async () => {
+    const points = Number($("withdraw-points").value);
+    if (!withdrawalQuote || !Number.isSafeInteger(points) || points <= 0) {
+      return say("withdraw-message", "Ambil kuotasi terbaru terlebih dahulu.");
+    }
+    $("withdraw-submit").disabled = true;
+    say("withdraw-message", "Mencatat permintaan dan mengunci poin...");
+    try {
+      const { data, error } = await db.rpc("svr_create_withdrawal_request", {
+        input_quote_id: withdrawalQuote.quote_id,
+        input_points_amount: points
+      });
+      if (error) throw error;
+      const result = Array.isArray(data) ? data[0] : data;
+      if (!result || result.success !== true) throw new Error(result?.message || "Permintaan tidak berhasil dibuat.");
+      say("withdraw-message", "Permintaan berhasil dicatat dengan status " + result.status +
+        ". Poin sedang dikunci. Jangan kirim fee USDT sampai instruksi pembayaran resmi tersedia.");
+      $("withdraw-points").value = "";
+      withdrawalQuote = null;
+      $("withdraw-quote-result").hidden = true;
+      await loadWithdrawalHistory();
+      await loadDashboard();
+    } catch (error) {
+      say("withdraw-message", "Gagal membuat permintaan: " + error.message);
+      $("withdraw-submit").disabled = false;
+    }
+  });
+
+\n  $("login").addEventListener("click", async () => {
     const email = $("email").value.trim();
     const password = $("password").value;
     if (!email || !password) return say("auth-message", "Masukkan email dan password.");
