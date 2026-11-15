@@ -5,7 +5,7 @@ on:
   push:
     branches: [main]
     paths:
-      - "supabase/functions/sevenrise-admin-bot/**"
+      - "supabase/functions/sevenrise-admin-bot/**"\n      - "supabase/functions/sevenrise-withdrawal-quote/**"
       - ".github/workflows/deploy-sevenrise-admin-bot.yml"
 
 permissions:
@@ -30,7 +30,7 @@ jobs:
         run: |
           test -n "$SUPABASE_ACCESS_TOKEN" || (echo "Missing SUPABASE_ACCESS_TOKEN GitHub secret" && exit 1)
           test -n "$SUPABASE_PROJECT_REF" || (echo "Missing SUPABASE_PROJECT_REF GitHub secret" && exit 1)
-          supabase functions deploy sevenrise-admin-bot --project-ref "$SUPABASE_PROJECT_REF" --no-verify-jwt --yes
+          supabase functions deploy sevenrise-admin-bot --project-ref "$SUPABASE_PROJECT_REF" --no-verify-jwt --yes\n          supabase functions deploy sevenrise-withdrawal-quote --project-ref "$SUPABASE_PROJECT_REF" --no-verify-jwt --yes
 
       - name: Configure function secrets
         env:
