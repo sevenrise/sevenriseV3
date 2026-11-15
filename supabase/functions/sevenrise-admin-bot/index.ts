@@ -68,7 +68,8 @@ async function sendMenu(chatId: number, text = "🔐 <b>SevenRise Admin Control<
       inline_keyboard: [
         [{ text: "📊 Dashboard", callback_data: "dashboard" }],
         [{ text: "👥 10 Pemain Terbaru", callback_data: "players" }],
-        [{ text: "🔎 Cari Pemain", callback_data: "search_help" }],\n        [{ text: "💸 Permintaan Penarikan", callback_data: "withdrawals" }],
+        [{ text: "🔎 Cari Pemain", callback_data: "search_help" }],
+        [{ text: "💸 Permintaan Penarikan", callback_data: "withdrawals" }],
       ],
     },
   });
@@ -111,12 +112,12 @@ async function withdrawalRequests(chatId: number) {
     "svr_withdrawal_requests?select=id,user_id,points_amount,usdt_value,ton_amount,wallet_address,status,created_at&order=created_at.desc&limit=10",
   );
   if (!Array.isArray(data) || data.length === 0) {
-    return sendMenu(chatId, "💸 <b>PERMINTAAN PENARIKAN</b>\\n\\nBelum ada permintaan atau tabel belum tersedia. Terapkan migrasi database terlebih dahulu.");
+    return sendMenu(chatId, "💸 <b>PERMINTAAN PENARIKAN</b>\n\nBelum ada permintaan atau tabel belum tersedia. Terapkan migrasi database terlebih dahulu.");
   }
   const lines = data.map((r: Record<string, unknown>, i: number) =>
-    `${i + 1}. <b>${escapeHtml(r.status)}</b> · ${escapeHtml(r.points_amount)} Points\\n   Estimasi: ${escapeHtml(Number(r.ton_amount || 0).toFixed(4))} TON / ${escapeHtml(Number(r.usdt_value || 0).toFixed(4))} USDT\\n   Wallet: <code>${escapeHtml(r.wallet_address)}</code>\\n   Request: <code>${escapeHtml(r.id)}</code>`
+    `${i + 1}. <b>${escapeHtml(r.status)}</b> · ${escapeHtml(r.points_amount)} Points\n   Estimasi: ${escapeHtml(Number(r.ton_amount || 0).toFixed(4))} TON / ${escapeHtml(Number(r.usdt_value || 0).toFixed(4))} USDT\n   Wallet: <code>${escapeHtml(r.wallet_address)}</code>\n   Request: <code>${escapeHtml(r.id)}</code>`
   );
-  return sendMenu(chatId, "💸 <b>10 PERMINTAAN PENARIKAN TERBARU</b>\\n\\n" + lines.join("\\n\\n") + "\\n\\n<i>Mode hanya baca. Fee harus diverifikasi on-chain sebelum approval atau payout.</i>");
+  return sendMenu(chatId, "💸 <b>10 PERMINTAAN PENARIKAN TERBARU</b>\n\n" + lines.join("\n\n") + "\n\n<i>Mode hanya baca. Fee harus diverifikasi on-chain sebelum approval atau payout.</i>");
 }
 
 async function searchPlayer(chatId: number, term: string) {
