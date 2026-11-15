@@ -68,7 +68,7 @@ async function sendMenu(chatId: number, text = "🔐 <b>SevenRise Admin Control<
       inline_keyboard: [
         [{ text: "📊 Dashboard", callback_data: "dashboard" }],
         [{ text: "👥 10 Pemain Terbaru", callback_data: "players" }],
-        [{ text: "🔎 Cari Pemain", callback_data: "search_help" }],
+        [{ text: "🔎 Cari Pemain", callback_data: "search_help" }],\n        [{ text: "💸 Permintaan Penarikan", callback_data: "withdrawals" }],
       ],
     },
   });
@@ -178,7 +178,7 @@ Deno.serve(async (req) => {
 
     if (text === "/start" || text === "/menu") await sendMenu(chatId);
     else if (text === "/dashboard") await dashboard(chatId);
-    else if (text === "/players") await latestPlayers(chatId);\n    else if (text === "/withdrawals") await withdrawalRequests(chatId);
+    else if (text === "/players") await latestPlayers(chatId);\n    else if (text === "/withdrawals") await withdrawalRequests(chatId);\n    else if (text === "/withdrawals") await withdrawalRequests(chatId);
     else if (text.startsWith("/search")) await searchPlayer(chatId, text.replace(/^\/search\s*/i, ""));
     else await sendMenu(chatId, "Perintah tersedia: /menu, /dashboard, /players, /withdrawals, /search nama_atau_id");
   } catch (error) {
