@@ -110,7 +110,8 @@
         <div class="quick-grid">
           <button class="quick-action" data-goto="mining">⛏ Mining<span>Mulai kumpulkan poin</span></button>
           <button class="quick-action" data-goto="referral">♧ Referral<span>Ajak teman bergabung</span></button>
-          <button class="quick-action" data-goto="wallet">◈ Wallet<span>Hubungkan TON Wallet</span></button>\n          <button class="quick-action" data-goto="withdrawal">⇧ Penarikan<span>Ajukan penarikan SVR</span></button>
+          <button class="quick-action" data-goto="wallet">◈ Wallet<span>Hubungkan TON Wallet</span></button>
+          <button class="quick-action" data-goto="withdrawal">⇧ Penarikan<span>Ajukan penarikan SVR</span></button>
         </div>
       </section>
     </section>
@@ -253,7 +254,8 @@
     <button class="nav-item" data-goto="mining"><span>⛏</span>Mining</button>
     <button class="nav-item" data-goto="referral"><span>♧</span>Referral</button>
     <button class="nav-item" data-goto="airdrop"><span>🎁</span>Airdrop</button>
-    <button class="nav-item" data-goto="withdrawal"><span>⇧</span>Tarik</button>\n    <button class="nav-item" data-goto="wallet"><span>◈</span>Wallet</button>
+    <button class="nav-item" data-goto="withdrawal"><span>⇧</span>Tarik</button>
+    <button class="nav-item" data-goto="wallet"><span>◈</span>Wallet</button>
     <button class="nav-item" data-goto="profile"><span>☻</span>Profil</button>
   </nav>
 
@@ -464,7 +466,8 @@
     const d = Array.isArray(data) ? data[0] : data;
     if (!d) throw new Error("Data dashboard kosong.");
 
-    $("balance").textContent = format(d.balance);\n    if ($("withdraw-balance")) $("withdraw-balance").textContent = format(d.balance);
+    $("balance").textContent = format(d.balance);
+    if ($("withdraw-balance")) $("withdraw-balance").textContent = format(d.balance);
     $("referral-code").textContent = d.referral_code || "Tidak tersedia";
     $("referral-count").textContent = format(d.referral_count);
     $("referral-earnings").textContent = format(d.referral_earnings);
