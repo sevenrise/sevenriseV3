@@ -76,6 +76,24 @@ async function clearHistory(telegramUserId: number) {
   if (!response.ok) throw new Error(`Database clear failed: ${await response.text()}`);
 }
 
+function friendlyError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  const lower = message.toLowerCase();
+  if (lower.includes("invalid_api_key") || lower.includes("incorrect api key") || lower.includes("401")) {
+    return "Kunci OpenAI ditolak. Periksa secret OPENAI_API_KEY di Supabase, pastikan nilainya adalah Secret API key yang aktif, lalu deploy ulang fungsi.";
+  }
+  if (lower.includes("insufficient_quota") || lower.includes("quota") || lower.includes("billing") || lower.includes("429")) {
+    return "Kuota atau billing OpenAI API belum tersedia. Periksa Usage dan Billing di platform.openai.com, lalu coba lagi.";
+  }
+  if (lower.includes("model") && (lower.includes("not found") || lower.includes("does not exist") || lower.includes("access"))) {
+    return "Model AI tidak tersedia untuk project API ini. Periksa secret SEVENRISE_AI_MODEL atau gunakan gpt-4o-mini.";
+  }
+  if (lower.includes("missing openai_api_key")) {
+    return "Secret OPENAI_API_KEY belum terpasang di Supabase.";
+  }
+  return "SevenRise AI belum dapat menghubungi layanan AI. Admin perlu memeriksa Edge Function Logs di Supabase.";
+}
+
 async function askOpenAI(history: Array<{ role: "user" | "assistant"; content: string }>) {
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -170,15 +188,32 @@ Deno.serve(async (req) => {
     }
 
     await telegram("sendChatAction", { chat_id: chatId, action: "typing" });
-    await saveMessage(userId, chatId, "user", text);
-    const history = await getHistory(userId);
+    if (!OPENAI_API_KEY) {
+      await sendText(chatId, "Secret OPENAI_API_KEY belum terpasang di Supabase. Admin perlu menambahkannya di Edge Function Secrets.");
+      return json({ ok: false, error: "Missing OpenAI API key" }, 200);
+    }
+
+    // Chat history is optional: database trouble must not block the AI reply.
+    let history: Array<{ role: "user" | "assistant"; content: string }> = [];
+    try {
+      await saveMessage(userId, chatId, "user", text);
+      history = await getHistory(userId);
+    } catch (historyError) {
+      console.error("SevenRise AI history unavailable; continuing without saved history:", historyError);
+      history = [{ role: "user", content: text }];
+    }
+
     const answer = await askOpenAI(history);
-    await saveMessage(userId, chatId, "assistant", answer);
+    try {
+      await saveMessage(userId, chatId, "assistant", answer);
+    } catch (saveError) {
+      console.error("SevenRise AI assistant history save failed:", saveError);
+    }
     await sendText(chatId, answer);
     return json({ ok: true });
   } catch (error) {
     console.error("SevenRise AI error:", error);
-    await sendText(chatId, "Maaf, SevenRise AI sedang mengalami kendala saat memproses pesan. Coba lagi sebentar lagi.");
+    await sendText(chatId, "⚠️ " + friendlyError(error));
     return json({ ok: false, error: "Message processing failed" }, 200);
   }
 });
