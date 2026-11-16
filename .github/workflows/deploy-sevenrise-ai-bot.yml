@@ -1,0 +1,37 @@
+name: Deploy SevenRise AI Bot
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "supabase/functions/sevenrise-ai-bot/**"
+      - ".github/workflows/deploy-sevenrise-ai-bot.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sevenrise-ai-bot-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.53.1
+
+      - name: Deploy SevenRise AI Edge Function
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: |
+          test -n "$SUPABASE_ACCESS_TOKEN" || (echo "Missing SUPABASE_ACCESS_TOKEN GitHub secret" && exit 1)
+          test -n "$SUPABASE_PROJECT_REF" || (echo "Missing SUPABASE_PROJECT_REF GitHub secret" && exit 1)
+          supabase functions deploy sevenrise-ai-bot --project-ref "$SUPABASE_PROJECT_REF" --no-verify-jwt --yes
