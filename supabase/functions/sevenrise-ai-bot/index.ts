@@ -4,7 +4,7 @@ const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const WEBHOOK_SECRET = Deno.env.get("TELEGRAM_SEVENRISE_WEBHOOK_SECRET") ?? "";
-const SETUP_SECRET = Deno.env.get("TELEGRAM_SEVENRISE_SETUP_SECRET") ?? "";
+const SETUP_SECRET = Deno.env.get("TELEGRAM_SEVENRISE_SETUP_SECRET") ?? TELEGRAM_TOKEN;
 const MODEL = Deno.env.get("SEVENRISE_AI_MODEL") ?? "gpt-4o-mini";
 
 const corsHeaders = { "content-type": "application/json; charset=utf-8" };
